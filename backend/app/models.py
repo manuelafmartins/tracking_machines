@@ -10,20 +10,34 @@ class MachineTypeEnum(str, enum.Enum):
     fixed = "fixed"
 
 
+class UserRoleEnum(str, enum.Enum):
+    admin = "admin"             # Main administrator with full access
+    fleet_manager = "fleet_manager"  # Company-specific manager
+
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
+    email = Column(String, index=True)
+    full_name = Column(String)
     hashed_password = Column(String, nullable=False)
-    is_admin = Column(Boolean, default=False)
+    role = Column(Enum(UserRoleEnum), default=UserRoleEnum.fleet_manager)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationship with Company
+    company = relationship("Company", back_populates="users")
 
 
 class Company(Base):
     __tablename__ = "companies"
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
-    machines = relationship("Machine", back_populates="company")
+    address = Column(String, nullable=True)
+    machines = relationship("Machine", back_populates="company", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="company")
 
 
 class Machine(Base):
@@ -33,7 +47,7 @@ class Machine(Base):
     type = Column(Enum(MachineTypeEnum), nullable=False)
     company_id = Column(Integer, ForeignKey("companies.id"))
     company = relationship("Company", back_populates="machines")
-    maintenances = relationship("Maintenance", back_populates="machine")
+    maintenances = relationship("Maintenance", back_populates="machine", cascade="all, delete-orphan")
 
 
 class Maintenance(Base):
@@ -43,4 +57,5 @@ class Maintenance(Base):
     type = Column(String, nullable=False)
     scheduled_date = Column(Date, nullable=False)
     completed = Column(Boolean, default=False)
+    notes = Column(String, nullable=True)
     machine = relationship("Machine", back_populates="maintenances")

@@ -2,6 +2,7 @@
 from .database import SessionLocal
 from .crud import get_user_by_username, create_user
 from .schemas import UserCreate
+from .models import UserRoleEnum
 import logging
 
 # Configure logging
@@ -20,8 +21,13 @@ def create_admin_user():
             return True
             
         # Create new admin user
-        user_data = UserCreate(username="admin", password="admin123")
-        create_user(db, user_data, is_admin=True)
+        user_data = UserCreate(
+            username="admin", 
+            password="admin123",
+            email="admin@fleetpilot.com",
+            full_name="Default Admin"
+        )
+        create_user(db, user_data, UserRoleEnum.admin)
         logger.info("Admin user created successfully")
         return True
     except Exception as e:
