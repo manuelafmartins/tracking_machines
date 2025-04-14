@@ -1,13 +1,13 @@
 # models.py
 import enum
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
 
-class TipoMaquinaEnum(str, enum.Enum):
-    camiao = "camiao"
-    fixa = "fixa"
+class MachineTypeEnum(str, enum.Enum):
+    truck = "truck"
+    fixed = "fixed"
 
 
 class User(Base):
@@ -16,29 +16,31 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String, nullable=False)
+    is_admin = Column(Boolean, default=False)
 
 
-class Empresa(Base):
-    __tablename__ = "empresas"
+class Company(Base):
+    __tablename__ = "companies"
     id = Column(Integer, primary_key=True)
-    nome = Column(String, unique=True, nullable=False)
-    maquinas = relationship("Maquina", back_populates="empresa")
+    name = Column(String, unique=True, nullable=False)
+    machines = relationship("Machine", back_populates="company")
 
 
-class Maquina(Base):
-    __tablename__ = "maquinas"
+class Machine(Base):
+    __tablename__ = "machines"
     id = Column(Integer, primary_key=True)
-    nome = Column(String, nullable=False)
-    tipo = Column(Enum(TipoMaquinaEnum), nullable=False)
-    empresa_id = Column(Integer, ForeignKey("empresas.id"))
-    empresa = relationship("Empresa", back_populates="maquinas")
-    manutencoes = relationship("Manutencao", back_populates="maquina")
+    name = Column(String, nullable=False)
+    type = Column(Enum(MachineTypeEnum), nullable=False)
+    company_id = Column(Integer, ForeignKey("companies.id"))
+    company = relationship("Company", back_populates="machines")
+    maintenances = relationship("Maintenance", back_populates="machine")
 
 
-class Manutencao(Base):
-    __tablename__ = "manutencoes"
+class Maintenance(Base):
+    __tablename__ = "maintenances"
     id = Column(Integer, primary_key=True)
-    maquina_id = Column(Integer, ForeignKey("maquinas.id"))
-    tipo = Column(String, nullable=False)
-    data_prevista = Column(Date, nullable=False)
-    maquina = relationship("Maquina", back_populates="manutencoes")
+    machine_id = Column(Integer, ForeignKey("machines.id"))
+    type = Column(String, nullable=False)
+    scheduled_date = Column(Date, nullable=False)
+    completed = Column(Boolean, default=False)
+    machine = relationship("Machine", back_populates="maintenances")

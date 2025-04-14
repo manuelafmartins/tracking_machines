@@ -1,56 +1,56 @@
-# backend/schemas.py
+# schemas.py
 from pydantic import BaseModel
 from datetime import date
 from enum import Enum
 
-# O enum de tipo da máquina, repetido aqui para Pydantic
-class TipoMaquinaEnum(str, Enum):
-    CAMIAO = "camiao"
-    FIXA = "fixa"
+# Machine type enum for Pydantic
+class MachineTypeEnum(str, Enum):
+    TRUCK = "truck"
+    FIXED = "fixed"
 
-# Empresa
-class EmpresaBase(BaseModel):
-    nome: str
+# Company
+class CompanyBase(BaseModel):
+    name: str
 
-class EmpresaCreate(EmpresaBase):
+class CompanyCreate(CompanyBase):
     pass
 
-class Empresa(EmpresaBase):
-    id: int
-
-    class Config:
-        orm_mode = True  # permite usar objetos do SQLAlchemy
-
-# Maquina
-class MaquinaBase(BaseModel):
-    nome: str
-    tipo: TipoMaquinaEnum
-    empresa_id: int
-
-class MaquinaCreate(MaquinaBase):
-    pass
-
-class Maquina(MaquinaBase):
+class Company(CompanyBase):
     id: int
 
     class Config:
         orm_mode = True
 
-# Manutencao
-class ManutencaoBase(BaseModel):
-    maquina_id: int
-    tipo: str
-    data_prevista: date
+# Machine
+class MachineBase(BaseModel):
+    name: str
+    type: MachineTypeEnum
+    company_id: int
 
-class ManutencaoCreate(ManutencaoBase):
+class MachineCreate(MachineBase):
     pass
 
-class Manutencao(ManutencaoBase):
+class Machine(MachineBase):
     id: int
 
     class Config:
         orm_mode = True
 
+# Maintenance
+class MaintenanceBase(BaseModel):
+    machine_id: int
+    type: str
+    scheduled_date: date
+
+class MaintenanceCreate(MaintenanceBase):
+    pass
+
+class Maintenance(MaintenanceBase):
+    id: int
+    completed: bool = False
+
+    class Config:
+        orm_mode = True
 
 # User schemas
 class UserBase(BaseModel):
@@ -61,6 +61,7 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    is_admin: bool = False
     
     class Config:
         orm_mode = True

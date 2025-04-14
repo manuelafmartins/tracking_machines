@@ -1,41 +1,38 @@
-## main.py
-#from fastapi import FastAPI
-#from .database import Base, engine
-#from .alarmes import iniciar_agendador
-#
-## Import dos routers
-#from .routers import auth_router, empresas, maquinas, manutencoes
-#
-#Base.metadata.create_all(bind=engine)
-#
-#app = FastAPI(title="GestÃ£o de Frotas", description="API para gestÃ£o de camiÃµes e manutenÃ§Ã£o")
-#
-#app.include_router(auth_router.router)
-#app.include_router(empresas.router)
-#app.include_router(maquinas.router)
-#app.include_router(manutencoes.router)
-#
-#iniciar_agendador()
-
-
-# backend/main.py
+# main.py
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from . import models
-from .routers import empresas, maquinas, manutencoes
-from .alarmes import iniciar_agendador
+from .routers import companies, machines, maintenances, auth_router
+from .alarms import start_scheduler
 
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="Fleet Management System",
+    description="API for managing fleet of trucks and other machines",
+    version="1.0.0"
+)
 
-app.include_router(empresas.router)
-app.include_router(maquinas.router)
-app.include_router(manutencoes.router)
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Iniciamos o agendador quando a API sobe
-#iniciar_agendador()
+# Include routers
+app.include_router(auth_router.router)
+app.include_router(companies.router)
+app.include_router(machines.router)
+app.include_router(maintenances.router)
+
+# Start the scheduler when API starts
+start_scheduler()
 
 @app.get("/")
 def home():
-    return {"mensagem": "API de gestão de frotas em construção"}
+    return {"message": "Fleet Management API"}
