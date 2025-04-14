@@ -5,6 +5,7 @@ from .database import Base, engine
 from . import models
 from .routers import companies, machines, maintenances, auth_router
 from .alarms import start_scheduler
+from .create_admin import create_admin_user
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -23,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Create admin user if it doesn't exist
+create_admin_user()
 
 # Include routers
 app.include_router(auth_router.router)

@@ -11,3 +11,4 @@ vonage
 psycopg2
 python-dotenv
 python-multipart
+plotly

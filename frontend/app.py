@@ -3,42 +3,51 @@ import streamlit as st
 import requests
 import pandas as pd
 import base64
-import json
 from datetime import datetime, timedelta
 import plotly.express as px
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "http://127.0.0.1:8000"  # Adjust if your backend runs elsewhere
+LOGO_PATH = "frontend/images/logo.png"
 
 def get_image_base64(image_path: str) -> str:
+    """Encodes the specified image in base64 for inline display."""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
     except FileNotFoundError:
-        st.warning(f"Imagem não encontrada: {image_path}")
+        st.warning(f"Image not found: {image_path}")
         return ""
 
-# Configuração do layout do Streamlit
-st.set_page_config(page_title="FleetPilot",
-                   layout="wide")
+# Set up the Streamlit page layout
+st.set_page_config(
+    page_title="FleetPilot",
+    layout="wide"
+)
 
-# Funções de API
-def login_user(username, password):
+# ----- API Helper Functions -----
+def login_user(username: str, password: str) -> bool:
+    """Attempts to log in the user with given credentials; returns True if successful."""
     try:
-        resp = requests.post(f"{API_URL}/auth/login", 
-                           data={"username": username, "password": password})
+        resp = requests.post(
+            f"{API_URL}/auth/login", 
+            data={"username": username, "password": password}
+        )
         if resp.status_code == 200:
             data = resp.json()
+            # Store the token in session state
             st.session_state["token"] = data["access_token"]
             st.session_state["logged_in"] = True
             return True
+        else:
+            st.error("Invalid credentials or connection error.")
     except requests.exceptions.ConnectionError:
-        st.error("Erro de conexão com a API. Verifique se o backend está em execução.")
+        st.error("API connection error. Please check if the backend is running.")
     except Exception as e:
-        st.error(f"Erro ao fazer login: {str(e)}")
+        st.error(f"Login error: {str(e)}")
     return False
 
-def get_api_data(endpoint):
-    """Função genérica para buscar dados da API"""
+def get_api_data(endpoint: str):
+    """Generic function to fetch data from the API using the stored auth token."""
     if "token" not in st.session_state:
         return None
     
@@ -48,48 +57,45 @@ def get_api_data(endpoint):
         if response.status_code == 200:
             return response.json()
         else:
-            st.error(f"Erro ao obter dados: {response.status_code}")
+            st.error(f"Failed to fetch data from '{endpoint}'. Status code: {response.status_code}")
             return None
     except Exception as e:
-        st.error(f"Erro de comunicação com a API: {str(e)}")
+        st.error(f"Communication error with the API: {str(e)}")
         return None
 
-def post_api_data(endpoint, data):
-    """Função genérica para enviar dados para a API"""
+def post_api_data(endpoint: str, data: dict) -> bool:
+    """Generic function to post JSON data to the API using the stored auth token."""
     if "token" not in st.session_state:
         return False
     
     headers = {"Authorization": f"Bearer {st.session_state['token']}"}
     try:
-        response = requests.post(f"{API_URL}/{endpoint}", 
-                               headers=headers, 
-                               json=data)
+        response = requests.post(f"{API_URL}/{endpoint}", headers=headers, json=data)
         if response.status_code in [200, 201]:
             return True
         else:
-            st.error(f"Erro ao enviar dados: {response.status_code}")
+            st.error(f"Failed to send data to '{endpoint}'. Status code: {response.status_code}")
             if response.text:
                 st.error(response.text)
             return False
     except Exception as e:
-        st.error(f"Erro de comunicação com a API: {str(e)}")
+        st.error(f"Communication error with the API: {str(e)}")
         return False
 
-# Inicialização de sessão
+# ----- Initialize Session State -----
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# Tela de Login
+# ----- Login Screen -----
 if not st.session_state["logged_in"]:
     st.markdown("<h1 style='text-align: center;'>FleetPilot</h1>", unsafe_allow_html=True)
     
-    logo_path = "frontend/images/logo.png"
-    image_base64 = get_image_base64(logo_path)
+    image_base64 = get_image_base64(LOGO_PATH)
     if image_base64:
         st.markdown(
             f"""
             <div style="display: flex; justify-content: center;">
-                <img src="data:image/png;base64,{image_base64}" width="150" 
+                <img src="data:image/png;base64,{image_base64}" width="150"
                      style="border-radius: 50%; border: 2px solid #ddd; 
                             box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
             </div>
@@ -97,9 +103,8 @@ if not st.session_state["logged_in"]:
             unsafe_allow_html=True
         )
     
-    st.markdown("<h4 style='text-align: center; color: gray;'>Gestão Inteligente da Frota</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: gray;'>Intelligent Fleet Management</h4>", unsafe_allow_html=True)
 
-    # Form de login
     with st.form("login_form"):
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -107,228 +112,278 @@ if not st.session_state["logged_in"]:
         
         if submitted:
             if login_user(username, password):
-                st.success("Login realizado com sucesso!")
-                st.experimental_rerun()
+                st.success("Login successful!")
+                st.rerun()
             else:
-                st.error("Credenciais inválidas ou erro de conexão.")
+                st.error("Invalid credentials or connection error.")
     st.stop()
 
-# Menu da aplicação (logado)
-st.sidebar.image(logo_path, width=60)
+# ----- Main App (Logged In) -----
+st.sidebar.image(LOGO_PATH, width=60)
 st.sidebar.title("FleetPilot")
-menu = st.sidebar.radio("Menu", 
-                      ["Dashboard", "Empresas", "Máquinas", "Manutenções", "Configurações", "Sair"],
-                      format_func=lambda x: f"?? {x}" if x == "Dashboard" 
-                                 else f"?? {x}" if x == "Empresas"
-                                 else f"?? {x}" if x == "Máquinas"
-                                 else f"?? {x}" if x == "Manutenções"
-                                 else f"?? {x}" if x == "Configurações"
-                                 else f"?? {x}")
 
-# Conteúdo das páginas
+menu = st.sidebar.radio(
+    "Menu", 
+    ["Dashboard", "Companies", "Machines", "Maintenances", "Settings", "Logout"]
+)
+
+# -----------------------------------------------------------------------------
+#                                DASHBOARD
+# -----------------------------------------------------------------------------
 if menu == "Dashboard":
-    st.title("Dashboard da Frota")
+    st.title("Fleet Dashboard")
     
-    # Métricas principais
     col1, col2, col3 = st.columns(3)
     
-    # Buscar dados para métricas (em produção, use dados reais da API)
-    maquinas = get_api_data("maquinas") or []
-    manutencoes = get_api_data("manutencoes") or []
+    # Fetch data from the API
+    machines = get_api_data("machines") or []
+    maintenances = get_api_data("maintenances") or []
     
-    # Calcular manutencoes próximas (7 dias)
-    hoje = datetime.now().date()
-    proxima_semana = hoje + timedelta(days=7)
-    manutencoes_proximas = [m for m in manutencoes 
-                          if hoje <= datetime.strptime(m['data_prevista'], '%Y-%m-%d').date() <= proxima_semana]
+    # Calculate upcoming maintenances within 7 days
+    today = datetime.now().date()
+    next_week = today + timedelta(days=7)
     
-    col1.metric("Total de Máquinas", len(maquinas))
-    col2.metric("Manutenções Próximas", len(manutencoes_proximas))
-    col3.metric("Empresas", "1")  # Em produção, use contagem real
+    # In your backend, "scheduled_date" might be the field name
+    upcoming_maintenances = []
+    for m in maintenances:
+        # Convert "scheduled_date" from string to date
+        sched_date = datetime.strptime(m["scheduled_date"], "%Y-%m-%d").date()
+        if today <= sched_date <= next_week:
+            upcoming_maintenances.append(m)
     
-    # Gráfico de distribuição de tipos de máquinas
-    if maquinas:
-        tipos = {}
-        for m in maquinas:
-            tipo = m['tipo']
-            tipos[tipo] = tipos.get(tipo, 0) + 1
+    col1.metric("Total Machines", len(machines))
+    col2.metric("Upcoming Maintenances", len(upcoming_maintenances))
+    col3.metric("Companies", "1")  # Replace with a real count if needed
+    
+    # Pie chart for machine types
+    if machines:
+        type_counts = {}
+        for m in machines:
+            machine_type = m["type"]
+            type_counts[machine_type] = type_counts.get(machine_type, 0) + 1
         
-        df_tipos = pd.DataFrame({
-            'Tipo': list(tipos.keys()),
-            'Quantidade': list(tipos.values())
+        df_types = pd.DataFrame({
+            "Machine Type": list(type_counts.keys()),
+            "Count": list(type_counts.values())
         })
         
-        fig = px.pie(df_tipos, values='Quantidade', names='Tipo', 
-                   title='Distribuição por Tipo de Máquina')
+        fig = px.pie(df_types, values="Count", names="Machine Type", title="Distribution by Machine Type")
         st.plotly_chart(fig)
     
-    # Tabela de manutenções próximas
-    if manutencoes_proximas:
-        st.subheader("Manutenções Próximas")
-        df_manutencoes = pd.DataFrame(manutencoes_proximas)
-        st.dataframe(df_manutencoes)
+    # Display upcoming maintenances
+    if upcoming_maintenances:
+        st.subheader("Upcoming Maintenances (next 7 days)")
+        st.dataframe(pd.DataFrame(upcoming_maintenances))
     else:
-        st.info("Não há manutenções agendadas para os próximos 7 dias.")
+        st.info("No maintenances scheduled in the next 7 days.")
 
-elif menu == "Empresas":
-    st.title("Gestão de Empresas")
+# -----------------------------------------------------------------------------
+#                               COMPANIES
+# -----------------------------------------------------------------------------
+elif menu == "Companies":
+    st.title("Company Management")
     
-    # Formulário para adicionar empresa
-    with st.form("nova_empresa"):
-        st.subheader("Adicionar Nova Empresa")
-        nome_empresa = st.text_input("Nome da Empresa")
-        submitted = st.form_submit_button("Adicionar")
+    with st.form("new_company"):
+        st.subheader("Add New Company")
+        company_name = st.text_input("Company Name")
+        submitted = st.form_submit_button("Add")
         
-        if submitted and nome_empresa:
-            if post_api_data("empresas", {"nome": nome_empresa}):
-                st.success(f"Empresa '{nome_empresa}' adicionada com sucesso!")
+        if submitted and company_name:
+            # "name" is what your schema expects for CompanyCreate
+            if post_api_data("companies", {"name": company_name}):
+                st.success(f"Company '{company_name}' added successfully!")
     
-    # Listagem de empresas existentes
-    st.subheader("Empresas Cadastradas")
-    empresas = get_api_data("empresas")
+    st.subheader("Existing Companies")
+    companies = get_api_data("companies")
     
-    if empresas:
-        for empresa in empresas:
-            st.write(f"**{empresa['nome']}** (ID: {empresa['id']})")
+    if companies:
+        # Each company is expected to have {"id": ..., "name": ...}
+        for comp in companies:
+            st.write(f"**{comp['name']}** (ID: {comp['id']})")
     else:
-        st.info("Nenhuma empresa cadastrada.")
+        st.info("No companies found.")
 
-elif menu == "Máquinas":
-    st.title("Gestão de Máquinas")
+# -----------------------------------------------------------------------------
+#                               MACHINES
+# -----------------------------------------------------------------------------
+elif menu == "Machines":
+    st.title("Machine Management")
     
-    # Formulário para adicionar máquina
-    empresas = get_api_data("empresas") or []
+    # Fetch companies for the dropdown
+    companies = get_api_data("companies") or []
     
-    with st.form("nova_maquina"):
-        st.subheader("Adicionar Nova Máquina")
-        nome_maquina = st.text_input("Nome da Máquina")
-        tipo_maquina = st.selectbox("Tipo", ["camiao", "fixa"])
-        empresa_id = st.selectbox("Empresa", 
-                                options=[e['id'] for e in empresas],
-                                format_func=lambda x: next((e['nome'] for e in empresas if e['id'] == x), str(x)))
+    with st.form("new_machine"):
+        st.subheader("Add New Machine")
+        machine_name = st.text_input("Machine Name")
+        # Based on your schema, possible types are "truck" or "fixed"
+        machine_type = st.selectbox("Type", ["truck", "fixed"])
         
-        submitted = st.form_submit_button("Adicionar")
-        
-        if submitted and nome_maquina and empresa_id:
-            if post_api_data("maquinas", {
-                "nome": nome_maquina,
-                "tipo": tipo_maquina,
-                "empresa_id": empresa_id
-            }):
-                st.success(f"Máquina '{nome_maquina}' adicionada com sucesso!")
-    
-    # Listagem de máquinas existentes
-    st.subheader("Máquinas Cadastradas")
-    maquinas = get_api_data("maquinas")
-    
-    if maquinas:
-        # Criar dataframe para melhor visualização
-        df_maquinas = pd.DataFrame(maquinas)
-        
-        # Adicionar nome da empresa
-        df_maquinas['empresa_nome'] = df_maquinas['empresa_id'].apply(
-            lambda x: next((e['nome'] for e in empresas if e['id'] == x), "Desconhecida")
+        # The user will select a company by ID
+        company_options = [c["id"] for c in companies]
+        selected_company_id = st.selectbox(
+            "Company",
+            options=company_options,
+            format_func=lambda cid: next((c["name"] for c in companies if c["id"] == cid), str(cid))
         )
         
-        st.dataframe(df_maquinas[['id', 'nome', 'tipo', 'empresa_nome']])
+        submitted = st.form_submit_button("Add")
+        
+        if submitted and machine_name and selected_company_id:
+            # According to the schema: {"name": str, "type": str, "company_id": int}
+            payload = {
+                "name": machine_name,
+                "type": machine_type,
+                "company_id": selected_company_id
+            }
+            if post_api_data("machines", payload):
+                st.success(f"Machine '{machine_name}' added successfully!")
+    
+    st.subheader("Existing Machines")
+    machines = get_api_data("machines")
+    
+    if machines:
+        # Convert to a DataFrame
+        df_machines = pd.DataFrame(machines)
+        
+        # Add the company name for readability
+        def get_company_name(cid):
+            for c in companies:
+                if c["id"] == cid:
+                    return c["name"]
+            return "Unknown"
+        
+        if "company_id" in df_machines.columns:
+            df_machines["company_name"] = df_machines["company_id"].apply(get_company_name)
+        
+        st.dataframe(df_machines)
     else:
-        st.info("Nenhuma máquina cadastrada.")
+        st.info("No machines found.")
 
-elif menu == "Manutenções":
-    st.title("Agendamento de Manutenções")
+# -----------------------------------------------------------------------------
+#                              MAINTENANCES
+# -----------------------------------------------------------------------------
+elif menu == "Maintenances":
+    st.title("Maintenance Scheduling")
     
-    # Buscar máquinas para o formulário
-    maquinas = get_api_data("maquinas") or []
+    # Fetch machines for the form
+    machines = get_api_data("machines") or []
     
-    # Formulário para agendar manutenção
-    with st.form("nova_manutencao"):
-        st.subheader("Agendar Nova Manutenção")
+    with st.form("new_maintenance"):
+        st.subheader("Schedule New Maintenance")
         
-        maquina_id = st.selectbox("Máquina", 
-                               options=[m['id'] for m in maquinas],
-                               format_func=lambda x: next((f"{m['nome']} ({m['tipo']})" 
-                                                        for m in maquinas if m['id'] == x), str(x)))
-        
-        tipo_manutencao = st.selectbox("Tipo de Manutenção", 
-                                     ["Troca de Óleo", "Revisão Completa", "Filtros", "Pneus", "Outro"])
-        
-        if tipo_manutencao == "Outro":
-            tipo_custom = st.text_input("Especifique o tipo de manutenção")
-            tipo_final = tipo_custom if tipo_custom else tipo_manutencao
-        else:
-            tipo_final = tipo_manutencao
-            
-        data_manutencao = st.date_input("Data Prevista", 
-                                      min_value=datetime.now().date(),
-                                      value=datetime.now().date() + timedelta(days=7))
-        
-        submitted = st.form_submit_button("Agendar")
-        
-        if submitted and maquina_id:
-            if post_api_data("manutencoes", {
-                "maquina_id": maquina_id,
-                "tipo": tipo_final,
-                "data_prevista": data_manutencao.isoformat()
-            }):
-                st.success(f"Manutenção agendada com sucesso para {data_manutencao}!")
-    
-    # Listagem de manutenções existentes
-    st.subheader("Manutenções Agendadas")
-    manutencoes = get_api_data("manutencoes")
-    
-    if manutencoes:
-        # Criar dataframe para melhor visualização
-        df_manutencoes = pd.DataFrame(manutencoes)
-        
-        # Adicionar nome da máquina
-        df_manutencoes['maquina_nome'] = df_manutencoes['maquina_id'].apply(
-            lambda x: next((m['nome'] for m in maquinas if m['id'] == x), "Desconhecida")
+        # Let user pick a machine
+        machine_options = [m["id"] for m in machines]
+        chosen_machine_id = st.selectbox(
+            "Machine",
+            options=machine_options,
+            format_func=lambda mid: next(
+                (f"{m['name']} ({m['type']})" for m in machines if m['id'] == mid),
+                str(mid)
+            )
         )
         
-        # Ordenar por data
-        df_manutencoes['data_prevista'] = pd.to_datetime(df_manutencoes['data_prevista'])
-        df_ordenado = df_manutencoes.sort_values('data_prevista')
+        # Types of maintenance
+        # You can store them in English, e.g. ["Oil Change", "Full Review", "Filters", "Tires", "Other"]
+        # Must match your backend if you're storing them as strings
+        maintenance_type = st.selectbox(
+            "Maintenance Type",
+            ["Oil Change", "Full Review", "Filters", "Tires", "Other"]
+        )
         
-        # Destacar próximas manutenções
-        hoje = datetime.now().date()
+        final_type = maintenance_type
+        if maintenance_type == "Other":
+            user_type = st.text_input("Specify the maintenance type")
+            if user_type:
+                final_type = user_type
         
-        # Função para estilizar baseado na data
-        def highlight_proximas(row):
-            data = row['data_prevista'].date()
-            if data <= hoje:
-                return ['background-color: #ffcccc'] * len(row)  # Vermelho claro (atrasada)
-            elif (data - hoje).days <= 7:
-                return ['background-color: #ffffcc'] * len(row)  # Amarelo claro (próxima)
+        scheduled_date = st.date_input(
+            "Scheduled Date",
+            min_value=datetime.now().date(),
+            value=datetime.now().date() + timedelta(days=7)
+        )
+        
+        submitted = st.form_submit_button("Schedule")
+        
+        if submitted and chosen_machine_id:
+            # According to MaintenanceCreate, we send: {"machine_id", "type", "scheduled_date"}
+            data = {
+                "machine_id": chosen_machine_id,
+                "type": final_type,
+                "scheduled_date": scheduled_date.isoformat()
+            }
+            if post_api_data("maintenances", data):
+                st.success(f"Maintenance scheduled on {scheduled_date}!")
+    
+    st.subheader("Scheduled Maintenances")
+    maintenances = get_api_data("maintenances")
+    
+    if maintenances:
+        # Convert to DataFrame
+        df_maint = pd.DataFrame(maintenances)
+        
+        # Convert "scheduled_date" to datetime
+        if "scheduled_date" in df_maint.columns:
+            df_maint["scheduled_date"] = pd.to_datetime(df_maint["scheduled_date"])
+        
+        # Add machine name
+        def get_machine_name(mid):
+            for m in machines:
+                if m["id"] == mid:
+                    return m["name"]
+            return "Unknown"
+        
+        if "machine_id" in df_maint.columns:
+            df_maint["machine_name"] = df_maint["machine_id"].apply(get_machine_name)
+        
+        # Sort by date
+        if "scheduled_date" in df_maint.columns:
+            df_maint = df_maint.sort_values("scheduled_date")
+        
+        # Simple highlight for overdue / soon
+        today = datetime.now().date()
+        
+        def highlight_row(row):
+            if "scheduled_date" not in row:
+                return [""] * len(row)
+            date_val = row["scheduled_date"].date()
+            if date_val <= today:
+                return ["background-color: #ffcccc"] * len(row)  # Light red
+            elif (date_val - today).days <= 7:
+                return ["background-color: #ffffcc"] * len(row)  # Light yellow
             else:
-                return [''] * len(row)
-                
-        # Exibir com estilo
-        st.dataframe(df_ordenado.style.apply(highlight_proximas, axis=1))
+                return [""] * len(row)
         
+        st.dataframe(df_maint.style.apply(highlight_row, axis=1))
     else:
-        st.info("Nenhuma manutenção agendada.")
+        st.info("No maintenances scheduled.")
 
-elif menu == "Configurações":
-    st.title("Configurações do Sistema")
+# -----------------------------------------------------------------------------
+#                               SETTINGS
+# -----------------------------------------------------------------------------
+elif menu == "Settings":
+    st.title("System Settings")
     
-    st.subheader("Configurações de Notificação")
-    st.write("Configure os números de telefone para receber alertas SMS sobre manutenções.")
+    st.subheader("Notification Settings")
+    st.write("Configure the phone number to receive SMS alerts for maintenances.")
     
-    telefone = st.text_input("Número de Telefone (com código do país)", value="351911234567")
-    if st.button("Salvar Configurações"):
-        # Em produção, salvar na base de dados
-        st.success("Configurações salvas com sucesso!")
+    phone_number = st.text_input("Phone Number (with country code)", value="351911234567")
+    if st.button("Save Settings"):
+        # In production, save to DB or call an endpoint
+        st.success("Settings saved successfully!")
     
-    st.subheader("Perfil da Empresa")
-    nome_empresa = st.text_input("Nome da Empresa", value="Minha Empresa")
-    email_contato = st.text_input("Email de Contato", value="contato@minhaempresa.com")
+    st.subheader("Company Profile")
+    company_name = st.text_input("Company Name", value="My Company")
+    contact_email = st.text_input("Contact Email", value="contact@mycompany.com")
     
-    if st.button("Atualizar Perfil"):
-        # Em produção, salvar na base de dados
-        st.success("Perfil atualizado com sucesso!")
+    if st.button("Update Profile"):
+        # In production, save to DB or call an endpoint
+        st.success("Profile updated successfully!")
 
-elif menu == "Sair":
-    # Limpar sessão e fazer logout
-    if st.button("Confirmar Logout"):
+# -----------------------------------------------------------------------------
+#                                LOGOUT
+# -----------------------------------------------------------------------------
+elif menu == "Logout":
+    st.write("Confirm to logout?")
+    if st.button("Confirm Logout"):
         st.session_state.clear()
-        st.experimental_rerun()
+        st.rerun()

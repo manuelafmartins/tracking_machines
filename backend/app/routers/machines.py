@@ -9,7 +9,7 @@ router = APIRouter(prefix="/machines", tags=["machines"])
 @router.get("/", response_model=list[schemas.Machine])
 def list_machines(
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_machines(db)
 
@@ -17,7 +17,7 @@ def list_machines(
 def create_machine(
     machine: schemas.MachineCreate, 
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.create_machine(db, machine)
 
@@ -25,7 +25,7 @@ def create_machine(
 def get_machine(
     machine_id: int, 
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     machine = crud.get_machine_by_id(db, machine_id)
     if machine is None:
@@ -36,6 +36,6 @@ def get_machine(
 def get_company_machines(
     company_id: int, 
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_machines_by_company(db, company_id)

@@ -9,7 +9,7 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 @router.get("/", response_model=list[schemas.Company])
 def list_companies(
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_companies(db)
 
@@ -17,7 +17,7 @@ def list_companies(
 def create_company(
     company: schemas.CompanyCreate, 
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.create_company(db, company)
 
@@ -25,7 +25,7 @@ def create_company(
 def get_company(
     company_id: int, 
     db: Session = Depends(database.get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    #current_user: schemas.User = Depends(get_current_user)
 ):
     company = crud.get_company_by_id(db, company_id)
     if company is None:

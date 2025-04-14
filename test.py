@@ -16,7 +16,7 @@ def create_connection():
             password=DB_PASSWORD,
             host=DB_HOST,
             port=DB_PORT,
-            sslmode='require'  # ADICIONADO: SSL é necessário!
+            sslmode='require' 
         )
         print("Conexão estabelecida com sucesso ao Supabase!")
         return connection
