@@ -1,52 +1,32 @@
+# backend/app/routers/auth_router.py
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from .. import database, crud, schemas
+from ..security import verificar_password, criar_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
-from .. import schemas, crud, database
-from ..security import (
-    verificar_password,
-    criar_token,
-    ACCESS_TOKEN_EXPIRE_MINUTES
-)
+router = APIRouter(tags=["auth"], prefix="/auth")
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["auth"]
-)
-
-@router.post("/register")
-def register_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    # Verifica se o username já existe
-    existing_user = crud.get_user_by_username(db, user.username)
-    if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="User already exists."
-        )
-    new_user = crud.create_user(db=db, user=user)
-    return {"msg": "User created successfully", "username": new_user.username}
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 @router.post("/login")
-def login(user: schemas.UserLogin, db: Session = Depends(database.get_db)):
-    db_user = crud.get_user_by_username(db, username=user.username)
-    if not db_user:
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    user = crud.get_user_by_username(db, form_data.username)
+    if not user or not verificar_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            detail="Credenciais inválidas",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    # Verifica se a senha está correta
-    if not verificar_password(user.password, db_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # Calcula tempo de expiração do token
+    
+    # Definir tempo de expiração do token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = criar_token(
-        data={"sub": db_user.username},
-        expires_delta=access_token_expires
-    )
+    
+    # Criar payload do token
+    token_data = {"sub": user.username}
+    
+    # Gerar o token JWT
+    access_token = criar_token(token_data, expires_delta=access_token_expires)
+    
     return {"access_token": access_token, "token_type": "bearer"}
