@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from datetime import date
 from enum import Enum
+from typing import Optional
 
 # Machine type enum for Pydantic
 class MachineTypeEnum(str, Enum):
@@ -19,7 +20,7 @@ class Company(CompanyBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Machine
 class MachineBase(BaseModel):
@@ -34,7 +35,7 @@ class Machine(MachineBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Maintenance
 class MaintenanceBase(BaseModel):
@@ -50,7 +51,7 @@ class Maintenance(MaintenanceBase):
     completed: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # User schemas
 class UserBase(BaseModel):
@@ -64,7 +65,7 @@ class User(UserBase):
     is_admin: bool = False
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Token
 class Token(BaseModel):
@@ -72,4 +73,4 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: str | None = None
+    username: Optional[str] = None

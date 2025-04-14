@@ -26,6 +26,7 @@ def create_connection():
 
 def test_query(connection):
     try:
+        print(connection)
         cursor = connection.cursor()
         cursor.execute("SELECT 1;")
         result = cursor.fetchone()
