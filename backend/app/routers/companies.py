@@ -1,15 +1,15 @@
 # routers/companies.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, get_admin_user, get_company_access
-from fastapi import File, UploadFile
 import shutil
 import os
 from pathlib import Path
 
 router = APIRouter(prefix="/companies", tags=["companies"])
+
 LOGO_DIR = Path("frontend/images/company_logos")
 os.makedirs(LOGO_DIR, exist_ok=True)
 

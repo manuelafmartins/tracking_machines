@@ -43,13 +43,13 @@ def upload_file_to_api(endpoint: str, file_key: str, file_path: str, file_name: 
                     st.error(response.text)
                 return False
     except Exception as e:
-        st.error(f"Erro de comunicação com a API: {str(e)}")
+        st.error(f"Erro de comunicaÃ§Ã£o com a API: {str(e)}")
         return False
 
 def get_company_logo_path(logo_relative_path: str) -> str:
     """Retorna o caminho completo do logo da empresa."""
     if not logo_relative_path:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrão
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃ£o
     
     # Caminho completo para a pasta de imagens
     image_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
@@ -59,7 +59,7 @@ def get_company_logo_path(logo_relative_path: str) -> str:
     if os.path.exists(logo_path):
         return logo_path
     else:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrão se o arquivo não existir
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃ£o se o arquivo nÃ£o existir
 
 # Set up the Streamlit page layout
 st.set_page_config(
@@ -67,7 +67,26 @@ st.set_page_config(
     layout="wide"
 )
 
-
+def save_company_logo(company_id, file_data):
+    """Salva o logo da empresa diretamente no sistema de arquivos"""
+    try:
+        # Criar diretório se não existir
+        os.makedirs("frontend/images/company_logos", exist_ok=True)
+        
+        # Gerar nome de arquivo seguro
+        file_extension = os.path.splitext(file_data.name)[1]
+        logo_filename = f"company_{company_id}{file_extension}"
+        logo_path = os.path.join("frontend/images/company_logos", logo_filename)
+        
+        # Salvar arquivo
+        with open(logo_path, "wb") as f:
+            f.write(file_data.getbuffer())
+        
+        # Retornar o caminho relativo para armazenar no banco de dados
+        return f"company_logos/{logo_filename}"
+    except Exception as e:
+        st.error(f"Erro ao salvar logo: {str(e)}")
+        return None
 
 # ----- API Helper Functions -----
 def login_user(username: str, password: str) -> bool:
@@ -190,18 +209,18 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
     if confirm_text is None:
         confirm_text = f"Are you sure you want to delete this {item_type}?"
     
-    # Chave para rastrear o estado de confirmação no session_state
+    # Chave para rastrear o estado de confirmaÃ§Ã£o no session_state
     confirm_key = f"confirm_delete_{item_type}_{item_id}"
     
-    # Se já estamos em modo de confirmação
+    # Se jÃ¡ estamos em modo de confirmaÃ§Ã£o
     if st.session_state.get(confirm_key, False):
         st.warning(confirm_text)
         
-        # Criar dois botões lado a lado: Confirmar e Cancelar
+        # Criar dois botÃµes lado a lado: Confirmar e Cancelar
         col1, col2 = st.columns(2)
         
         with col1:
-            # Botão de confirmação
+            # BotÃ£o de confirmaÃ§Ã£o
             if st.button("Confirm Delete", key=f"confirm_delete_btn_{item_type}_{item_id}"):
                 # Mapear tipos de itens para seus endpoints correspondentes
                 endpoint_map = {
@@ -215,7 +234,7 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 if item_type in endpoint_map:
                     endpoint = endpoint_map[item_type]
                 else:
-                    # Caso padrão para outros tipos não especificados
+                    # Caso padrÃ£o para outros tipos nÃ£o especificados
                     endpoint = f"{item_type}s/{item_id}"
                 
                 if delete_api_data(endpoint):
@@ -226,16 +245,16 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 return True
         
         with col2:
-            # Botão de cancelar
+            # BotÃ£o de cancelar
             if st.button("Cancel", key=f"cancel_delete_{item_type}_{item_id}"):
                 # Reset confirmation status
                 st.session_state[confirm_key] = False
                 st.rerun()
             return False
     else:
-        # Mostrar o botão de delete inicial
+        # Mostrar o botÃ£o de delete inicial
         if st.button(label, key=f"delete_{item_type}_{item_id}"):
-            # Ativar modo de confirmação
+            # Ativar modo de confirmaÃ§Ã£o
             st.session_state[confirm_key] = True
             st.rerun()
         return False
@@ -281,15 +300,21 @@ if not st.session_state["logged_in"]:
 user_role = st.session_state.get("role", "unknown")
 username = st.session_state.get("username", "unknown")
 
-# Obter o logo da empresa se o usuário for um gestor de frota
+# Obter o logo da empresa se o usuÃ¡rio for um gestor de frota
 company_logo_path = DEFAULT_LOGO_PATH
 if user_role == "fleet_manager" and st.session_state.get("company_id"):
-    # Fetch company info
-    company = get_api_data(f"companies/{st.session_state['company_id']}")
-    if company and company.get("logo_path"):
-        logo_path = os.path.join("frontend/images", company.get("logo_path"))
-        if os.path.exists(logo_path):
-            company_logo_path = logo_path
+    company_id = st.session_state.get("company_id")
+    
+    # Verificar diretamente se existe um arquivo de logo para esta empresa
+    possible_extensions = ['.png', '.jpg', '.jpeg']
+    for ext in possible_extensions:
+        potential_logo_path = os.path.join("frontend/images/company_logos", f"company_{company_id}{ext}")
+        if os.path.exists(potential_logo_path):
+            company_logo_path = potential_logo_path
+            break
+    
+    # Exibir para debug
+    st.sidebar.write(f"Logo path usado: {company_logo_path}")
 
 st.sidebar.image(company_logo_path, width=60)
 st.sidebar.title("FleetPilot")
@@ -430,7 +455,7 @@ elif menu == "Companies":
                 company_data = {"name": company_name}
                 if company_address:
                     company_data["address"] = company_address
-                    
+                
                 # Criar empresa
                 new_company_response = requests.post(
                     f"{API_URL}/companies", 
@@ -442,22 +467,14 @@ elif menu == "Companies":
                     new_company = new_company_response.json()
                     company_id = new_company["id"]
                     
-                    # Se um logo foi enviado, fazer upload
+                    # Se um logo foi enviado, salvar e atualizar caminho
                     if company_logo:
-                        # Salvar o arquivo temporariamente
-                        temp_file_path = f"temp_logo_{company_id}.png"
-                        with open(temp_file_path, "wb") as f:
-                            f.write(company_logo.getbuffer())
+                        logo_relative_path = save_company_logo(company_id, company_logo)
                         
-                        # Enviar o logo para a API
-                        logo_endpoint = f"companies/{company_id}/logo"
-                        upload_file_to_api(logo_endpoint, "logo", temp_file_path, company_logo.name)
-                        
-                        # Limpar arquivo temporário
-                        try:
-                            os.remove(temp_file_path)
-                        except:
-                            pass
+                        if logo_relative_path:
+                            # Atualizar o caminho do logo no banco de dados
+                            update_data = {"logo_path": logo_relative_path}
+                            put_api_data(f"companies/{company_id}", update_data)
                     
                     st.success(f"Empresa '{company_name}' adicionada com sucesso!")
                     st.rerun()
@@ -529,25 +546,22 @@ elif menu == "Companies":
                     
                     if submit_edit and new_name:
                         if submit_edit and new_name and new_logo:
-                            # Salvar o arquivo temporariamente
-                            temp_file_path = f"temp_logo_{comp['id']}.png"
-                            with open(temp_file_path, "wb") as f:
-                                f.write(new_logo.getbuffer())
+                            # Nova implementação
+                            logo_relative_path = save_company_logo(comp['id'], new_logo)
                             
-                            # Enviar o logo para a API
-                            logo_endpoint = f"companies/{comp['id']}/logo"
-                            if upload_file_to_api(logo_endpoint, "logo", temp_file_path, new_logo.name):
-                                st.success("Logo atualizado com sucesso!")
+                            if logo_relative_path:
+                                # Atualizar apenas o caminho do logo no banco de dados
+                                update_data = {
+                                    "name": new_name,
+                                    "address": new_address,
+                                    "logo_path": logo_relative_path
+                                }
                                 
-                                # Limpar arquivo temporário
-                                try:
-                                    os.remove(temp_file_path)
-                                except:
-                                    pass
-                                
-                                # Limpar a sessão e recarregar
-                                if "edit_company_id" in st.session_state:
-                                    del st.session_state["edit_company_id"]
+                                if put_api_data(f"companies/{comp['id']}", update_data):
+                                    st.success("Empresa e logo atualizados com sucesso!")
+                                    if "edit_company_id" in st.session_state:
+                                        del st.session_state["edit_company_id"]
+                                    st.rerun()
                         
                         update_data = {"name": new_name}
                         if new_address:
@@ -901,13 +915,13 @@ elif menu == "Maintenances":
                     days_remaining = (date_val - today).days
                     
                     if days_remaining <= 0:
-                        status = "🔴 Overdue"
+                        status = "ðŸ”´ Overdue"
                     elif days_remaining <= 2:
-                        status = "🟠 Urgent"
+                        status = "ðŸŸ  Urgent"
                     elif days_remaining <= 7:
-                        status = "🟡 Soon"
+                        status = "ðŸŸ¡ Soon"
                     else:
-                        status = "🟢 Scheduled"
+                        status = "ðŸŸ¢ Scheduled"
                     
                     # Create an expander with maintenance details
                     with st.expander(f"{status} - {maint.get('type', 'Maintenance')} on {maint.get('machine_name', 'Unknown Machine')} ({date_val})"):
@@ -1074,7 +1088,7 @@ elif menu == "Users" and is_admin():
         
         # Display users in expandable sections
         for user in users:
-            status = "🟢 Active" if user.get("is_active", True) else "🔴 Inactive"
+            status = "ðŸŸ¢ Active" if user.get("is_active", True) else "ðŸ”´ Inactive"
             with st.expander(f"{user['username']} - {user.get('role', 'Unknown').replace('_', ' ').title()} ({status})"):
                 col1, col2 = st.columns([3, 1])
                 
