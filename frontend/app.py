@@ -9,7 +9,7 @@ import json
 import os
 from PIL import Image
 
-API_URL = "http://127.0.0.1:8000"  # Adjust if your backend runs elsewhere
+API_URL = "http://127.0.0.1:8000"
 LOGO_PATH = "frontend/images/logo.png"
 DEFAULT_LOGO_PATH = "frontend/images/logo.png"
 
@@ -43,13 +43,13 @@ def upload_file_to_api(endpoint: str, file_key: str, file_path: str, file_name: 
                     st.error(response.text)
                 return False
     except Exception as e:
-        st.error(f"Erro de comunicaÃ§Ã£o com a API: {str(e)}")
+        st.error(f"Erro de comunicaÃƒÂ§ÃƒÂ£o com a API: {str(e)}")
         return False
 
 def get_company_logo_path(logo_relative_path: str) -> str:
     """Retorna o caminho completo do logo da empresa."""
     if not logo_relative_path:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃ£o
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÂ£o
     
     # Caminho completo para a pasta de imagens
     image_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
@@ -59,7 +59,7 @@ def get_company_logo_path(logo_relative_path: str) -> str:
     if os.path.exists(logo_path):
         return logo_path
     else:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃ£o se o arquivo nÃ£o existir
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÂ£o se o arquivo nÃƒÂ£o existir
 
 # Set up the Streamlit page layout
 st.set_page_config(
@@ -70,7 +70,7 @@ st.set_page_config(
 def save_company_logo(company_id, file_data):
     """Salva o logo da empresa diretamente no sistema de arquivos"""
     try:
-        # Criar diretório se não existir
+        # Criar diretÃ³rio se nÃ£o existir
         os.makedirs("frontend/images/company_logos", exist_ok=True)
         
         # Gerar nome de arquivo seguro
@@ -106,12 +106,12 @@ def login_user(username: str, password: str) -> bool:
             st.session_state["role"] = data["role"]
             st.session_state["company_id"] = data.get("company_id")  # May be None
             
-            # Obter o full_name do usuário para exibir no sidebar
+            # Obter o full_name do usuÃ¡rio para exibir no sidebar
             user_info = get_api_data("auth/users/me")
             if user_info and "full_name" in user_info:
                 st.session_state["full_name"] = user_info.get("full_name", username)
             else:
-                st.session_state["full_name"] = username  # Fallback para username se full_name não estiver disponível
+                st.session_state["full_name"] = username  # Fallback para username se full_name nÃ£o estiver disponÃ­vel
                 
             return True
         else:
@@ -217,18 +217,18 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
     if confirm_text is None:
         confirm_text = f"Are you sure you want to delete this {item_type}?"
     
-    # Chave para rastrear o estado de confirmaÃ§Ã£o no session_state
+    # Chave para rastrear o estado de confirmaÃƒÂ§ÃƒÂ£o no session_state
     confirm_key = f"confirm_delete_{item_type}_{item_id}"
     
-    # Se jÃ¡ estamos em modo de confirmaÃ§Ã£o
+    # Se jÃƒÂ¡ estamos em modo de confirmaÃƒÂ§ÃƒÂ£o
     if st.session_state.get(confirm_key, False):
         st.warning(confirm_text)
         
-        # Criar dois botÃµes lado a lado: Confirmar e Cancelar
+        # Criar dois botÃƒÂµes lado a lado: Confirmar e Cancelar
         col1, col2 = st.columns(2)
         
         with col1:
-            # BotÃ£o de confirmaÃ§Ã£o
+            # BotÃƒÂ£o de confirmaÃƒÂ§ÃƒÂ£o
             if st.button("Confirm Delete", key=f"confirm_delete_btn_{item_type}_{item_id}"):
                 # Mapear tipos de itens para seus endpoints correspondentes
                 endpoint_map = {
@@ -242,7 +242,7 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 if item_type in endpoint_map:
                     endpoint = endpoint_map[item_type]
                 else:
-                    # Caso padrÃ£o para outros tipos nÃ£o especificados
+                    # Caso padrÃƒÂ£o para outros tipos nÃƒÂ£o especificados
                     endpoint = f"{item_type}s/{item_id}"
                 
                 if delete_api_data(endpoint):
@@ -253,16 +253,16 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 return True
         
         with col2:
-            # BotÃ£o de cancelar
+            # BotÃƒÂ£o de cancelar
             if st.button("Cancel", key=f"cancel_delete_{item_type}_{item_id}"):
                 # Reset confirmation status
                 st.session_state[confirm_key] = False
                 st.rerun()
             return False
     else:
-        # Mostrar o botÃ£o de delete inicial
+        # Mostrar o botÃƒÂ£o de delete inicial
         if st.button(label, key=f"delete_{item_type}_{item_id}"):
-            # Ativar modo de confirmaÃ§Ã£o
+            # Ativar modo de confirmaÃƒÂ§ÃƒÂ£o
             st.session_state[confirm_key] = True
             st.rerun()
         return False
@@ -308,7 +308,7 @@ if not st.session_state["logged_in"]:
 user_role = st.session_state.get("role", "unknown")
 username = st.session_state.get("username", "unknown")
 
-# Obter o logo da empresa se o usuÃ¡rio for um gestor de frota
+# Obter o logo da empresa se o usuÃƒÂ¡rio for um gestor de frota
 company_logo_path = DEFAULT_LOGO_PATH
 if user_role == "fleet_manager" and st.session_state.get("company_id"):
     company_id = st.session_state.get("company_id")
@@ -326,7 +326,7 @@ st.sidebar.title("FleetPilot")
 
 # User info section
 with st.sidebar.container():
-    # Usar o full_name em vez do username, com fallback para username se full_name não estiver disponível
+    # Usar o full_name em vez do username, com fallback para username se full_name nÃ£o estiver disponÃ­vel
     full_name = st.session_state.get("full_name", username)
     st.write(f"**Nome:** {full_name}")
     st.write(f"**Função:** {user_role.replace('_', ' ').title()}")
@@ -335,14 +335,87 @@ with st.sidebar.container():
         company = get_api_data(f"companies/{st.session_state['company_id']}")
         if company:
             st.write(f"**Empresa:** {company['name']}")
-# Menu items depend on user role
-menu_items = ["Dashboard", "Companies", "Machines", "Maintenances", "Settings", "Logout"]
 
-# Admin gets an extra menu item for user management
+# Remova a parte de JavaScript que não está funcionando
+
+# Mantenha apenas o CSS para estilizar os botões
+st.markdown("""
+<style>
+    div.stButton > button {
+        background-color: #2c3e50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin: 0px 5px;
+        width: 100%;
+    }
+    div.stButton > button:hover {
+        background-color: #34495e;
+    }
+    div.stButton > button:focus {
+        background-color: #3498db;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Criar uma linha de botões para o menu
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+with col1:
+    dashboard_btn = st.button("Dashboard")
+with col2:
+    companies_btn = st.button("Empresas")
+with col3:
+    machines_btn = st.button("Máquinas")
+with col4:
+    maintenances_btn = st.button("Manutenções")
+
+# Adicione o botão "Usuários" apenas para admins
 if is_admin():
-    menu_items.insert(4, "Users")
+    with col5:
+        users_btn = st.button("Usuários")
+    with col6:
+        settings_btn = st.button("Configurações")
+else:
+    with col5:
+        settings_btn = st.button("Configurações")
+    with col6:
+        users_btn = False
 
-menu = st.sidebar.radio("Menu", menu_items)
+# Botão de logout pode ficar separado
+logout_btn = st.button("Sair")
+
+# Controle qual página está sendo exibida
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Dashboard"
+
+# Atualizar a página atual com base nos botões clicados
+if dashboard_btn:
+    st.session_state["current_page"] = "Dashboard"
+    st.rerun()
+elif companies_btn:
+    st.session_state["current_page"] = "Companies"
+    st.rerun()
+elif machines_btn:
+    st.session_state["current_page"] = "Machines"
+    st.rerun()
+elif maintenances_btn:
+    st.session_state["current_page"] = "Maintenances"
+    st.rerun()
+elif users_btn:
+    st.session_state["current_page"] = "Users"
+    st.rerun()
+elif settings_btn:
+    st.session_state["current_page"] = "Settings"
+    st.rerun()
+elif logout_btn:
+    st.session_state["current_page"] = "Logout"
+    st.rerun()
+
+# Usar a variável de session_state para determinar qual página mostrar
+menu = st.session_state["current_page"]
 
 # -----------------------------------------------------------------------------
 #                                DASHBOARD
@@ -553,7 +626,7 @@ elif menu == "Companies":
                     
                     if submit_edit and new_name:
                         if submit_edit and new_name and new_logo:
-                            # Nova implementação
+                            # Nova implementaÃ§Ã£o
                             logo_relative_path = save_company_logo(comp['id'], new_logo)
                             
                             if logo_relative_path:
@@ -922,13 +995,13 @@ elif menu == "Maintenances":
                     days_remaining = (date_val - today).days
                     
                     if days_remaining <= 0:
-                        status = "ðŸ”´ Overdue"
+                        status = "Ã°Å¸â€�Â´ Overdue"
                     elif days_remaining <= 2:
-                        status = "ðŸŸ  Urgent"
+                        status = "Ã°Å¸Å¸Â  Urgent"
                     elif days_remaining <= 7:
-                        status = "ðŸŸ¡ Soon"
+                        status = "Ã°Å¸Å¸Â¡ Soon"
                     else:
-                        status = "ðŸŸ¢ Scheduled"
+                        status = "Ã°Å¸Å¸Â¢ Scheduled"
                     
                     # Create an expander with maintenance details
                     with st.expander(f"{status} - {maint.get('type', 'Maintenance')} on {maint.get('machine_name', 'Unknown Machine')} ({date_val})"):
@@ -1095,7 +1168,7 @@ elif menu == "Users" and is_admin():
         
         # Display users in expandable sections
         for user in users:
-            status = "ðŸŸ¢ Active" if user.get("is_active", True) else "ðŸ”´ Inactive"
+            status = "Ã°Å¸Å¸Â¢ Active" if user.get("is_active", True) else "Ã°Å¸â€�Â´ Inactive"
             with st.expander(f"{user['username']} - {user.get('role', 'Unknown').replace('_', ' ').title()} ({status})"):
                 col1, col2 = st.columns([3, 1])
                 
