@@ -105,6 +105,14 @@ def login_user(username: str, password: str) -> bool:
             st.session_state["username"] = data["username"]
             st.session_state["role"] = data["role"]
             st.session_state["company_id"] = data.get("company_id")  # May be None
+            
+            # Obter o full_name do usuário para exibir no sidebar
+            user_info = get_api_data("auth/users/me")
+            if user_info and "full_name" in user_info:
+                st.session_state["full_name"] = user_info.get("full_name", username)
+            else:
+                st.session_state["full_name"] = username  # Fallback para username se full_name não estiver disponível
+                
             return True
         else:
             st.error("Invalid credentials or connection error.")
@@ -313,21 +321,20 @@ if user_role == "fleet_manager" and st.session_state.get("company_id"):
             company_logo_path = potential_logo_path
             break
     
-    # Exibir para debug
-    st.sidebar.write(f"Logo path usado: {company_logo_path}")
-
-st.sidebar.image(company_logo_path, width=60)
+st.sidebar.image(company_logo_path)
 st.sidebar.title("FleetPilot")
 
 # User info section
 with st.sidebar.container():
-    st.write(f"**User:** {username}")
-    st.write(f"**Role:** {user_role.replace('_', ' ').title()}")
+    # Usar o full_name em vez do username, com fallback para username se full_name não estiver disponível
+    full_name = st.session_state.get("full_name", username)
+    st.write(f"**Nome:** {full_name}")
+    st.write(f"**Função:** {user_role.replace('_', ' ').title()}")
     if user_role == "fleet_manager" and st.session_state.get("company_id"):
         # Fetch company name
         company = get_api_data(f"companies/{st.session_state['company_id']}")
         if company:
-            st.write(f"**Company:** {company['name']}")
+            st.write(f"**Empresa:** {company['name']}")
 # Menu items depend on user role
 menu_items = ["Dashboard", "Companies", "Machines", "Maintenances", "Settings", "Logout"]
 
