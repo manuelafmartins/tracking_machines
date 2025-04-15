@@ -16,3 +16,4 @@ plotly>=5.14.0
 pydantic[email]>=2.0.0
 email-validator>=2.0.0
 pillow>=9.0.0
+unidecode

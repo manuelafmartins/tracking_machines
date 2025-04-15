@@ -8,6 +8,9 @@ from typing import List
 from .. import database, crud, schemas, models
 from ..security import verify_password, create_token, ACCESS_TOKEN_EXPIRE_MINUTES, create_user_token
 from ..dependencies import get_admin_user, get_current_user
+from ..notifications import notify_new_user_created
+from ..crud import get_company_by_id
+import logging
 
 router = APIRouter(tags=["authentication"], prefix="/auth")
 
@@ -77,7 +80,29 @@ def create_new_user(
             detail="Username already registered"
         )
     
-    return crud.create_user(db=db, user=user, role=user.role)
+    # Criar o usuário
+    new_user = crud.create_user(db=db, user=user, role=user.role)
+    
+    # Obter nome da empresa se for um usuário de fleet manager
+    company_name = None
+    if user.role == models.UserRoleEnum.fleet_manager and user.company_id:
+        company = get_company_by_id(db, user.company_id)
+        company_name = company.name if company else None
+    
+    # Enviar notificação
+    try:
+        role_display = "Administrador" if user.role == models.UserRoleEnum.admin else "Gestor de Frota"
+        notify_new_user_created(
+            db,
+            username=user.username,
+            role=role_display,
+            company_name=company_name
+        )
+    except Exception as e:
+        # Log error but don't fail the request
+        logging.error(f"Failed to send user creation notification: {str(e)}")
+    
+    return new_user
 
 @router.put("/users/{user_id}", response_model=schemas.User)
 def update_user(

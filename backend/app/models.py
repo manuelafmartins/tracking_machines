@@ -27,6 +27,10 @@ class User(Base):
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
     is_active = Column(Boolean, default=True)
     
+    # Novos campos
+    phone_number = Column(String(20), nullable=True)
+    notifications_enabled = Column(Boolean, default=True)
+    
     # Relationship with Company
     company = relationship("Company", back_populates="users")
 

@@ -1,4 +1,3 @@
-# security.py
 import os
 from dotenv import load_dotenv
 from jose import JWTError, jwt
@@ -7,7 +6,7 @@ from passlib.context import CryptContext
 from typing import Optional, Dict, Any
 from . import models
 
-load_dotenv()  # Load .env variables
+load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "default_super_secret_key_replace_in_production")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")

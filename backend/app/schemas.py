@@ -20,6 +20,8 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     role: Optional[UserRoleEnum] = UserRoleEnum.FLEET_MANAGER
     company_id: Optional[int] = None
+    phone_number: Optional[str] = None
+    notifications_enabled: Optional[bool] = True
 
 class UserCreate(UserBase):
     password: str
@@ -32,6 +34,8 @@ class UserUpdate(BaseModel):
     role: Optional[UserRoleEnum] = None
     company_id: Optional[int] = None
     is_active: Optional[bool] = None
+    phone_number: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
 
 class User(UserBase):
     id: int

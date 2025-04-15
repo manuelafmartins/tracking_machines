@@ -1,10 +1,13 @@
 # alarms.py
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timedelta
+import logging
+
 from .database import SessionLocal
 from .crud import list_pending_maintenances, get_company_by_id
-from .utils import send_sms, send_email
-import logging
+from .notifications import (notify_upcoming_maintenance, 
+                           send_sms_notification, 
+                           notify_admins)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,40 +27,35 @@ def check_maintenances():
         for m in maintenances:
             days_remaining = (m.scheduled_date - datetime.now().date()).days
             
-            # Format message based on urgency
-            if days_remaining <= 2:
-                prefix = "URGENT! "
-                priority = "high"
-            else:
-                prefix = "Notice: "
-                priority = "normal"
-                
-            msg = f"{prefix}Maintenance '{m.type}' for machine '{m.machine.name}' " \
-                  f"from company '{m.machine.company.name}' scheduled for {m.scheduled_date}."
-            
             # Get company responsible for this machine
             company = m.machine.company
+            company_id = company.id
+            company_name = company.name
             
-            # In a production environment, these would come from company settings
-            contact_numbers = ["351911234567"]  # Demo number
-            contact_emails = ["manager@example.com"]  # Demo email
+            # Notify based on urgency
+            if days_remaining <= 2:
+                prefix = "URGENTE! "
+                priority = "high"
+            else:
+                prefix = "Aviso: "
+                priority = "normal"
             
-            # Send SMS notifications
-            for number in contact_numbers:
+            # Only notify if we're in the alert window (0-7 days)
+            if 0 <= days_remaining <= 7:
                 try:
-                    send_sms(msg, number)
-                    logger.info(f"SMS alert sent to {number}")
+                    # Use the new notification system
+                    notify_upcoming_maintenance(
+                        db,
+                        machine_name=m.machine.name,
+                        maintenance_type=m.type,
+                        scheduled_date=m.scheduled_date.strftime("%d/%m/%Y"),
+                        days_remaining=days_remaining,
+                        company_id=company_id,
+                        company_name=company_name
+                    )
+                    logger.info(f"Notification sent for maintenance {m.id} (in {days_remaining} days)")
                 except Exception as e:
-                    logger.error(f"Error sending SMS: {str(e)}")
-            
-            # Send email notifications
-            for email in contact_emails:
-                try:
-                    subject = f"{prefix}Maintenance Alert for {m.machine.name}"
-                    send_email(subject, msg, email, priority)
-                    logger.info(f"Email alert sent to {email}")
-                except Exception as e:
-                    logger.error(f"Error sending email: {str(e)}")
+                    logger.error(f"Error sending maintenance notification: {str(e)}")
     
     finally:
         db.close()

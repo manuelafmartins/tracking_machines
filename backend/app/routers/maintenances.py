@@ -5,6 +5,9 @@ from typing import List
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, check_maintenance_access, check_machine_access
 from fastapi import Body, HTTPException
+from ..notifications import notify_new_maintenance_scheduled, notify_maintenance_completed
+from ..crud import get_machine_by_id, get_company_by_id
+import logging
 
 router = APIRouter(prefix="/maintenances", tags=["maintenances"])
 
@@ -40,7 +43,33 @@ def create_maintenance(
     # Check if user has access to the machine
     check_machine_access(maintenance.machine_id, current_user, db)
     
-    return crud.create_maintenance(db, maintenance)
+    # Criar a manutenção
+    new_maintenance = crud.create_maintenance(db, maintenance)
+    
+    # Obter informações da máquina e empresa para a notificação
+    machine = get_machine_by_id(db, maintenance.machine_id)
+    
+    if machine:
+        machine_name = machine.name
+        company_id = machine.company_id
+        company = get_company_by_id(db, company_id)
+        company_name = company.name if company else "Desconhecida"
+        
+        # Enviar notificação
+        try:
+            notify_new_maintenance_scheduled(
+                db,
+                machine_name=machine_name,
+                maintenance_type=maintenance.type,
+                scheduled_date=maintenance.scheduled_date.strftime("%d/%m/%Y"),
+                company_id=company_id,
+                company_name=company_name
+            )
+        except Exception as e:
+            # Log error but don't fail the request
+            logging.error(f"Failed to send maintenance creation notification: {str(e)}")
+    
+    return new_maintenance
 
 @router.get("/{maintenance_id}", response_model=schemas.Maintenance)
 def get_maintenance(
@@ -92,9 +121,35 @@ def mark_maintenance_completed(
     # Check if user has access to this maintenance
     check_maintenance_access(maintenance_id, current_user, db)
     
-    maintenance = crud.update_maintenance_status(db, maintenance_id, True)
-    if maintenance is None:
+    # Obter informações da manutenção antes de marcá-la como concluída
+    maintenance_before = crud.get_maintenance_by_id(db, maintenance_id)
+    
+    if maintenance_before is None:
         raise HTTPException(status_code=404, detail="Maintenance not found")
+    
+    # Atualizar status da manutenção
+    maintenance = crud.update_maintenance_status(db, maintenance_id, True)
+    
+    # Enviar notificação
+    if maintenance and maintenance_before.machine:
+        machine = maintenance_before.machine
+        machine_name = machine.name
+        company_id = machine.company_id
+        company = get_company_by_id(db, company_id)
+        company_name = company.name if company else "Desconhecida"
+        
+        try:
+            notify_maintenance_completed(
+                db,
+                machine_name=machine_name,
+                maintenance_type=maintenance.type,
+                company_id=company_id,
+                company_name=company_name
+            )
+        except Exception as e:
+            # Log error but don't fail the request
+            logging.error(f"Failed to send maintenance completion notification: {str(e)}")
+    
     return maintenance
 
 @router.delete("/{maintenance_id}", response_model=dict)

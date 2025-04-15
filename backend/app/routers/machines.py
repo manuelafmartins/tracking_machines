@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, get_admin_user, get_company_access, check_machine_access
+from ..notifications import notify_new_machine_added
+from ..crud import get_company_by_id
 
 router = APIRouter(prefix="/machines", tags=["machines"])
 
@@ -39,7 +41,26 @@ def create_machine(
     # Check if user has access to the company where they want to add the machine
     get_company_access(machine.company_id, current_user)
     
-    return crud.create_machine(db, machine)
+    # Criar a máquina
+    new_machine = crud.create_machine(db, machine)
+    
+    # Obter o nome da empresa para a notificação
+    company = get_company_by_id(db, machine.company_id)
+    company_name = company.name if company else "Desconhecida"
+    
+    # Enviar notificação
+    try:
+        notify_new_machine_added(
+            db, 
+            machine_name=new_machine.name,
+            company_id=machine.company_id,
+            company_name=company_name
+        )
+    except Exception as e:
+        # Log error but don't fail the request
+        logging.error(f"Failed to send machine creation notification: {str(e)}")
+    
+    return new_machine
 
 @router.get("/{machine_id}", response_model=schemas.Machine)
 def get_machine(
