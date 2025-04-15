@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, check_maintenance_access, check_machine_access
+from fastapi import Body, HTTPException
 
 router = APIRouter(prefix="/maintenances", tags=["maintenances"])
 

@@ -1,7 +1,7 @@
 """
-Módulo de configuração do banco de dados para a aplicação.
-Este arquivo configura a conexão com o banco de dados PostgreSQL e define
-funções auxiliares para gerenciar a conexão.
+Database configuration module for the application.
+This file sets up the connection to the PostgreSQL database and defines
+helper functions to manage the connection.
 """
 import os
 import logging
@@ -11,75 +11,75 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 
-# Configuração de logging para registrar erros e informações
+# Logging configuration to record errors and information
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Carrega as variáveis de ambiente do arquivo .env
+# Load environment variables from .env file
 try:
     load_dotenv()
-    logger.info("Variáveis de ambiente carregadas com sucesso")
+    logger.info("Environment variables loaded successfully")
 except Exception as e:
-    logger.error(f"Erro ao carregar variáveis de ambiente: {str(e)}")
+    logger.error(f"Error loading environment variables: {str(e)}")
 
-# Obtém a URL de conexão do banco de dados das variáveis de ambiente
-# Se não existir, usa uma URL padrão para desenvolvimento local
+# Get database connection URL from environment variables
+# If it doesn't exist, use a default URL for local development
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/fleetdb")
-logger.info(f"Usando URL de conexão: {DATABASE_URL.split('@')[0].split('//')[0]}//******@{DATABASE_URL.split('@')[1]}")
+logger.info(f"Using connection URL: {DATABASE_URL.split('@')[0].split('//')[0]}//******@{DATABASE_URL.split('@')[1]}")
 
 try:
-    # Cria o motor de banco de dados SQLAlchemy
-    # echo=True faz com que as consultas SQL sejam exibidas no console (útil para depuração)
+    # Create the SQLAlchemy database engine
+    # echo=True makes SQL queries display in the console (useful for debugging)
     engine = create_engine(
         DATABASE_URL, 
         echo=True,
-        pool_pre_ping=True,  # Verifica se a conexão está ativa antes de usá-la
-        pool_recycle=3600,   # Recicla conexões após 1 hora para evitar timeout
-        connect_args={"connect_timeout": 15}  # Timeout de conexão de 15 segundos
+        pool_pre_ping=True,  # Checks if the connection is active before using it
+        pool_recycle=3600,   # Recycles connections after 1 hour to avoid timeout
+        connect_args={"connect_timeout": 15}  # Connection timeout of 15 seconds
     )
-    logger.info("Motor de banco de dados configurado com sucesso")
+    logger.info("Database engine configured successfully")
     
-    # Cria uma fábrica de sessões para o banco de dados
-    # autocommit=False: transações não são confirmadas automaticamente
-    # autoflush=False: alterações não são sincronizadas automaticamente com o banco
+    # Create a session factory for the database
+    # autocommit=False: transactions are not committed automatically
+    # autoflush=False: changes are not synchronized automatically with the database
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    logger.info("Fábrica de sessões configurada com sucesso")
+    logger.info("Session factory configured successfully")
     
-    # Classe base para modelos declarativos
-    # Todos os modelos (classes) que representam tabelas no banco de dados herdarão desta classe
+    # Base class for declarative models
+    # All models (classes) that represent tables in the database will inherit from this class
     Base = declarative_base()
     
 except SQLAlchemyError as e:
-    logger.critical(f"Erro crítico ao configurar o banco de dados: {str(e)}")
+    logger.critical(f"Critical error while configuring the database: {str(e)}")
     raise
 
 def get_db():
     """
-    Função geradora para fornecer uma sessão de banco de dados.
+    Generator function to provide a database session.
     
-    Retorna:
-        SQLAlchemy Session: Uma sessão de banco de dados ativa.
+    Returns:
+        SQLAlchemy Session: An active database session.
         
-    Esta função é usada com o sistema de dependências do FastAPI para
-    injetar uma sessão de banco de dados nos endpoints.
-    A sessão é fechada automaticamente após o uso, mesmo se ocorrer uma exceção.
+    This function is used with FastAPI's dependency injection system to
+    inject a database session into endpoints.
+    The session is automatically closed after use, even if an exception occurs.
     
-    Exemplo de uso:
+    Usage example:
         @app.get("/items")
         def read_items(db: Session = Depends(get_db)):
             return db.query(Item).all()
     """
     db = SessionLocal()
     try:
-        logger.debug("Nova sessão de banco de dados iniciada")
+        logger.debug("New database session started")
         yield db
     except SQLAlchemyError as e:
-        logger.error(f"Erro na sessão de banco de dados: {str(e)}")
-        db.rollback()  # Reverte alterações em caso de erro
+        logger.error(f"Error in database session: {str(e)}")
+        db.rollback()  # Rollback changes in case of error
         raise
     finally:
-        logger.debug("Sessão de banco de dados fechada")
-        db.close()  # Garante que a sessão sempre será fechada
+        logger.debug("Database session closed")
+        db.close()  # Ensures that the session is always closed
