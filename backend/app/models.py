@@ -36,6 +36,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
     address = Column(String, nullable=True)
+    logo_path = Column(String, nullable=True)
     machines = relationship("Machine", back_populates="company", cascade="all, delete-orphan")
     users = relationship("User", back_populates="company")
 

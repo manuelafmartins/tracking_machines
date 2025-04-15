@@ -4,8 +4,14 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, get_admin_user, get_company_access
+from fastapi import File, UploadFile
+import shutil
+import os
+from pathlib import Path
 
 router = APIRouter(prefix="/companies", tags=["companies"])
+LOGO_DIR = Path("frontend/images/company_logos")
+os.makedirs(LOGO_DIR, exist_ok=True)
 
 @router.get("/", response_model=List[schemas.Company])
 def list_companies(
@@ -86,3 +92,38 @@ def delete_company(
         "success": True, 
         "message": "Company deleted successfully with all associated machines and maintenances"
     }
+
+@router.post("/{company_id}/logo", response_model=schemas.Company)
+def upload_company_logo(
+    company_id: int,
+    logo: UploadFile = File(...),
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_admin_user)  # Apenas admin pode fazer upload
+):
+    """Upload e atualiza o logo da empresa (admin only)"""
+    # Verificar se a empresa existe
+    company = crud.get_company_by_id(db, company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+        
+    # Criar um nome de arquivo seguro
+    file_extension = os.path.splitext(logo.filename)[1]
+    logo_filename = f"company_{company_id}{file_extension}"
+    logo_path = LOGO_DIR / logo_filename
+    
+    # Salvar o arquivo
+    try:
+        with open(logo_path, "wb") as buffer:
+            shutil.copyfileobj(logo.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar o logo: {str(e)}")
+    
+    # Atualizar o caminho do logo no banco de dados
+    relative_path = f"company_logos/{logo_filename}"
+    company_data = schemas.CompanyUpdate(logo_path=relative_path)
+    
+    updated_company = crud.update_company(db, company_id, company_data)
+    if not updated_company:
+        raise HTTPException(status_code=404, detail="Empresa não encontrada")
+    
+    return updated_company

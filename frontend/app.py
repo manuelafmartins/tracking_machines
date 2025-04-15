@@ -6,9 +6,12 @@ import base64
 from datetime import datetime, timedelta
 import plotly.express as px
 import json
+import os
+from PIL import Image
 
 API_URL = "http://127.0.0.1:8000"  # Adjust if your backend runs elsewhere
 LOGO_PATH = "frontend/images/logo.png"
+DEFAULT_LOGO_PATH = "frontend/images/logo.png"
 
 def get_image_base64(image_path: str) -> str:
     """Encodes the specified image in base64 for inline display."""
@@ -19,11 +22,52 @@ def get_image_base64(image_path: str) -> str:
         st.warning(f"Image not found: {image_path}")
         return ""
 
+def upload_file_to_api(endpoint: str, file_key: str, file_path: str, file_name: str = None):
+    """Envia um arquivo para o backend."""
+    if "token" not in st.session_state:
+        return False
+    
+    headers = {"Authorization": f"Bearer {st.session_state['token']}"}
+    
+    try:
+        with open(file_path, "rb") as file:
+            file_name = file_name or os.path.basename(file_path)
+            files = {file_key: (file_name, file, "multipart/form-data")}
+            response = requests.post(f"{API_URL}/{endpoint}", headers=headers, files=files)
+            
+            if response.status_code in [200, 201]:
+                return True
+            else:
+                st.error(f"Falha ao enviar arquivo para '{endpoint}'. Status code: {response.status_code}")
+                if response.text:
+                    st.error(response.text)
+                return False
+    except Exception as e:
+        st.error(f"Erro de comunicação com a API: {str(e)}")
+        return False
+
+def get_company_logo_path(logo_relative_path: str) -> str:
+    """Retorna o caminho completo do logo da empresa."""
+    if not logo_relative_path:
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrão
+    
+    # Caminho completo para a pasta de imagens
+    image_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
+    logo_path = os.path.join(image_dir, logo_relative_path)
+    
+    # Verificar se o arquivo existe
+    if os.path.exists(logo_path):
+        return logo_path
+    else:
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrão se o arquivo não existir
+
 # Set up the Streamlit page layout
 st.set_page_config(
     page_title="FleetPilot",
     layout="wide"
 )
+
+
 
 # ----- API Helper Functions -----
 def login_user(username: str, password: str) -> bool:
@@ -237,7 +281,17 @@ if not st.session_state["logged_in"]:
 user_role = st.session_state.get("role", "unknown")
 username = st.session_state.get("username", "unknown")
 
-st.sidebar.image(LOGO_PATH, width=60)
+# Obter o logo da empresa se o usuário for um gestor de frota
+company_logo_path = DEFAULT_LOGO_PATH
+if user_role == "fleet_manager" and st.session_state.get("company_id"):
+    # Fetch company info
+    company = get_api_data(f"companies/{st.session_state['company_id']}")
+    if company and company.get("logo_path"):
+        logo_path = os.path.join("frontend/images", company.get("logo_path"))
+        if os.path.exists(logo_path):
+            company_logo_path = logo_path
+
+st.sidebar.image(company_logo_path, width=60)
 st.sidebar.title("FleetPilot")
 
 # User info section
@@ -249,7 +303,6 @@ with st.sidebar.container():
         company = get_api_data(f"companies/{st.session_state['company_id']}")
         if company:
             st.write(f"**Company:** {company['name']}")
-
 # Menu items depend on user role
 menu_items = ["Dashboard", "Companies", "Machines", "Maintenances", "Settings", "Logout"]
 
@@ -370,6 +423,7 @@ elif menu == "Companies":
             st.subheader("Add New Company")
             company_name = st.text_input("Company Name")
             company_address = st.text_input("Address (Optional)")
+            company_logo = st.file_uploader("Logo da Empresa (opcional)", type=["png", "jpg", "jpeg"])
             submitted = st.form_submit_button("Add")
             
             if submitted and company_name:
@@ -377,9 +431,38 @@ elif menu == "Companies":
                 if company_address:
                     company_data["address"] = company_address
                     
-                if post_api_data("companies", company_data):
-                    st.success(f"Company '{company_name}' added successfully!")
+                # Criar empresa
+                new_company_response = requests.post(
+                    f"{API_URL}/companies", 
+                    headers={"Authorization": f"Bearer {st.session_state['token']}"},
+                    json=company_data
+                )
+                
+                if new_company_response.status_code in [200, 201]:
+                    new_company = new_company_response.json()
+                    company_id = new_company["id"]
+                    
+                    # Se um logo foi enviado, fazer upload
+                    if company_logo:
+                        # Salvar o arquivo temporariamente
+                        temp_file_path = f"temp_logo_{company_id}.png"
+                        with open(temp_file_path, "wb") as f:
+                            f.write(company_logo.getbuffer())
+                        
+                        # Enviar o logo para a API
+                        logo_endpoint = f"companies/{company_id}/logo"
+                        upload_file_to_api(logo_endpoint, "logo", temp_file_path, company_logo.name)
+                        
+                        # Limpar arquivo temporário
+                        try:
+                            os.remove(temp_file_path)
+                        except:
+                            pass
+                    
+                    st.success(f"Empresa '{company_name}' adicionada com sucesso!")
                     st.rerun()
+                else:
+                    st.error(f"Erro ao criar empresa: {new_company_response.text}")
     
     st.subheader("Existing Companies")
     
@@ -398,6 +481,10 @@ elif menu == "Companies":
         # Create tabs for each company
         for comp in companies:
             with st.expander(f"{comp['name']} (ID: {comp['id']})"):
+                if comp.get("logo_path"):
+                    logo_path = os.path.join("frontend/images", comp.get("logo_path"))
+                    if os.path.exists(logo_path):
+                        st.image(logo_path, width=150, caption="Logo atual da empresa")
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
@@ -432,6 +519,7 @@ elif menu == "Companies":
                     st.subheader(f"Edit Company: {comp['name']}")
                     new_name = st.text_input("Company Name", value=st.session_state["edit_company_name"])
                     new_address = st.text_input("Address", value=st.session_state["edit_company_address"])
+                    new_logo = st.file_uploader("Atualizar Logo (opcional)", type=["png", "jpg", "jpeg"])
                     
                     col1, col2 = st.columns(2)
                     with col1:
@@ -440,6 +528,27 @@ elif menu == "Companies":
                         cancel_edit = st.form_submit_button("Cancel")
                     
                     if submit_edit and new_name:
+                        if submit_edit and new_name and new_logo:
+                            # Salvar o arquivo temporariamente
+                            temp_file_path = f"temp_logo_{comp['id']}.png"
+                            with open(temp_file_path, "wb") as f:
+                                f.write(new_logo.getbuffer())
+                            
+                            # Enviar o logo para a API
+                            logo_endpoint = f"companies/{comp['id']}/logo"
+                            if upload_file_to_api(logo_endpoint, "logo", temp_file_path, new_logo.name):
+                                st.success("Logo atualizado com sucesso!")
+                                
+                                # Limpar arquivo temporário
+                                try:
+                                    os.remove(temp_file_path)
+                                except:
+                                    pass
+                                
+                                # Limpar a sessão e recarregar
+                                if "edit_company_id" in st.session_state:
+                                    del st.session_state["edit_company_id"]
+                        
                         update_data = {"name": new_name}
                         if new_address:
                             update_data["address"] = new_address

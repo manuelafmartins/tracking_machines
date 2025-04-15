@@ -44,6 +44,7 @@ class User(UserBase):
 class CompanyBase(BaseModel):
     name: str
     address: Optional[str] = None
+    logo_path: Optional[str] = None  
 
 class CompanyCreate(CompanyBase):
     pass
@@ -51,6 +52,7 @@ class CompanyCreate(CompanyBase):
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
+    logo_path: Optional[str] = None  
 
 class Company(CompanyBase):
     id: int
