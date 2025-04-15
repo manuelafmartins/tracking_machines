@@ -43,13 +43,13 @@ def upload_file_to_api(endpoint: str, file_key: str, file_path: str, file_name: 
                     st.error(response.text)
                 return False
     except Exception as e:
-        st.error(f"Erro de comunicaÃƒÂ§ÃƒÂ£o com a API: {str(e)}")
+        st.error(f"Erro de comunicaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o com a API: {str(e)}")
         return False
 
 def get_company_logo_path(logo_relative_path: str) -> str:
     """Retorna o caminho completo do logo da empresa."""
     if not logo_relative_path:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÂ£o
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÆ’Ã‚Â£o
     
     # Caminho completo para a pasta de imagens
     image_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
@@ -59,7 +59,7 @@ def get_company_logo_path(logo_relative_path: str) -> str:
     if os.path.exists(logo_path):
         return logo_path
     else:
-        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÂ£o se o arquivo nÃƒÂ£o existir
+        return DEFAULT_LOGO_PATH  # Retorna o logo padrÃƒÆ’Ã‚Â£o se o arquivo nÃƒÆ’Ã‚Â£o existir
 
 # Set up the Streamlit page layout
 st.set_page_config(
@@ -70,7 +70,7 @@ st.set_page_config(
 def save_company_logo(company_id, file_data):
     """Salva o logo da empresa diretamente no sistema de arquivos"""
     try:
-        # Criar diretÃ³rio se nÃ£o existir
+        # Criar diretÃƒÂ³rio se nÃƒÂ£o existir
         os.makedirs("frontend/images/company_logos", exist_ok=True)
         
         # Gerar nome de arquivo seguro
@@ -106,12 +106,12 @@ def login_user(username: str, password: str) -> bool:
             st.session_state["role"] = data["role"]
             st.session_state["company_id"] = data.get("company_id")  # May be None
             
-            # Obter o full_name do usuÃ¡rio para exibir no sidebar
+            # Obter o full_name do usuÃƒÂ¡rio para exibir no sidebar
             user_info = get_api_data("auth/users/me")
             if user_info and "full_name" in user_info:
                 st.session_state["full_name"] = user_info.get("full_name", username)
             else:
-                st.session_state["full_name"] = username  # Fallback para username se full_name nÃ£o estiver disponÃ­vel
+                st.session_state["full_name"] = username  # Fallback para username se full_name nÃƒÂ£o estiver disponÃƒÂ­vel
                 
             return True
         else:
@@ -217,18 +217,18 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
     if confirm_text is None:
         confirm_text = f"Are you sure you want to delete this {item_type}?"
     
-    # Chave para rastrear o estado de confirmaÃƒÂ§ÃƒÂ£o no session_state
+    # Chave para rastrear o estado de confirmaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o no session_state
     confirm_key = f"confirm_delete_{item_type}_{item_id}"
     
-    # Se jÃƒÂ¡ estamos em modo de confirmaÃƒÂ§ÃƒÂ£o
+    # Se jÃƒÆ’Ã‚Â¡ estamos em modo de confirmaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
     if st.session_state.get(confirm_key, False):
         st.warning(confirm_text)
         
-        # Criar dois botÃƒÂµes lado a lado: Confirmar e Cancelar
+        # Criar dois botÃƒÆ’Ã‚Âµes lado a lado: Confirmar e Cancelar
         col1, col2 = st.columns(2)
         
         with col1:
-            # BotÃƒÂ£o de confirmaÃƒÂ§ÃƒÂ£o
+            # BotÃƒÆ’Ã‚Â£o de confirmaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             if st.button("Confirm Delete", key=f"confirm_delete_btn_{item_type}_{item_id}"):
                 # Mapear tipos de itens para seus endpoints correspondentes
                 endpoint_map = {
@@ -242,7 +242,7 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 if item_type in endpoint_map:
                     endpoint = endpoint_map[item_type]
                 else:
-                    # Caso padrÃƒÂ£o para outros tipos nÃƒÂ£o especificados
+                    # Caso padrÃƒÆ’Ã‚Â£o para outros tipos nÃƒÆ’Ã‚Â£o especificados
                     endpoint = f"{item_type}s/{item_id}"
                 
                 if delete_api_data(endpoint):
@@ -253,16 +253,16 @@ def show_delete_button(item_type, item_id, label="Delete", confirm_text=None):
                 return True
         
         with col2:
-            # BotÃƒÂ£o de cancelar
+            # BotÃƒÆ’Ã‚Â£o de cancelar
             if st.button("Cancel", key=f"cancel_delete_{item_type}_{item_id}"):
                 # Reset confirmation status
                 st.session_state[confirm_key] = False
                 st.rerun()
             return False
     else:
-        # Mostrar o botÃƒÂ£o de delete inicial
+        # Mostrar o botÃƒÆ’Ã‚Â£o de delete inicial
         if st.button(label, key=f"delete_{item_type}_{item_id}"):
-            # Ativar modo de confirmaÃƒÂ§ÃƒÂ£o
+            # Ativar modo de confirmaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
             st.session_state[confirm_key] = True
             st.rerun()
         return False
@@ -308,7 +308,7 @@ if not st.session_state["logged_in"]:
 user_role = st.session_state.get("role", "unknown")
 username = st.session_state.get("username", "unknown")
 
-# Obter o logo da empresa se o usuÃƒÂ¡rio for um gestor de frota
+# Obter o logo da empresa se o usuÃƒÆ’Ã‚Â¡rio for um gestor de frota
 company_logo_path = DEFAULT_LOGO_PATH
 if user_role == "fleet_manager" and st.session_state.get("company_id"):
     company_id = st.session_state.get("company_id")
@@ -326,19 +326,19 @@ st.sidebar.title("FleetPilot")
 
 # User info section
 with st.sidebar.container():
-    # Usar o full_name em vez do username, com fallback para username se full_name nÃ£o estiver disponÃ­vel
+    # Usar o full_name em vez do username, com fallback para username se full_name nÃƒÂ£o estiver disponÃƒÂ­vel
     full_name = st.session_state.get("full_name", username)
     st.write(f"**Nome:** {full_name}")
-    st.write(f"**Função:** {user_role.replace('_', ' ').title()}")
+    st.write(f"**FunÃ§Ã£o:** {user_role.replace('_', ' ').title()}")
     if user_role == "fleet_manager" and st.session_state.get("company_id"):
         # Fetch company name
         company = get_api_data(f"companies/{st.session_state['company_id']}")
         if company:
             st.write(f"**Empresa:** {company['name']}")
 
-# Remova a parte de JavaScript que não está funcionando
+# Remova a parte de JavaScript que nÃ£o estÃ¡ funcionando
 
-# Mantenha apenas o CSS para estilizar os botões
+# Mantenha apenas o CSS para estilizar os botÃµes
 st.markdown("""
 <style>
     div.stButton > button {
@@ -360,7 +360,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Criar uma linha de botões para o menu
+# Criar uma linha de botÃµes para o menu
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
@@ -368,30 +368,30 @@ with col1:
 with col2:
     companies_btn = st.button("Empresas")
 with col3:
-    machines_btn = st.button("Máquinas")
+    machines_btn = st.button("MÃ¡quinas")
 with col4:
-    maintenances_btn = st.button("Manutenções")
+    maintenances_btn = st.button("ManutenÃ§Ãµes")
 
-# Adicione o botão "Usuários" apenas para admins
+# Adicione o botÃ£o "UsuÃ¡rios" apenas para admins
 if is_admin():
     with col5:
-        users_btn = st.button("Usuários")
+        users_btn = st.button("UsuÃ¡rios")
     with col6:
-        settings_btn = st.button("Configurações")
+        settings_btn = st.button("ConfiguraÃ§Ãµes")
 else:
     with col5:
-        settings_btn = st.button("Configurações")
+        settings_btn = st.button("ConfiguraÃ§Ãµes")
     with col6:
         users_btn = False
 
-# Botão de logout pode ficar separado
+# BotÃ£o de logout pode ficar separado
 logout_btn = st.button("Sair")
 
-# Controle qual página está sendo exibida
+# Controle qual pÃ¡gina estÃ¡ sendo exibida
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "Dashboard"
 
-# Atualizar a página atual com base nos botões clicados
+# Atualizar a pÃ¡gina atual com base nos botÃµes clicados
 if dashboard_btn:
     st.session_state["current_page"] = "Dashboard"
     st.rerun()
@@ -414,7 +414,7 @@ elif logout_btn:
     st.session_state["current_page"] = "Logout"
     st.rerun()
 
-# Usar a variável de session_state para determinar qual página mostrar
+# Usar a variÃ¡vel de session_state para determinar qual pÃ¡gina mostrar
 menu = st.session_state["current_page"]
 
 # -----------------------------------------------------------------------------
@@ -626,7 +626,7 @@ elif menu == "Companies":
                     
                     if submit_edit and new_name:
                         if submit_edit and new_name and new_logo:
-                            # Nova implementaÃ§Ã£o
+                            # Nova implementaÃƒÂ§ÃƒÂ£o
                             logo_relative_path = save_company_logo(comp['id'], new_logo)
                             
                             if logo_relative_path:
@@ -666,7 +666,26 @@ elif menu == "Companies":
 #                               MACHINES
 # -----------------------------------------------------------------------------
 elif menu == "Machines":
-    st.title("Machine Management")
+    # Título e botão na mesma linha usando colunas
+    title_col, btn_col = st.columns([9, 1])
+    
+    with title_col:
+        st.title("Machine Management")
+    
+    with btn_col:
+        # Inicializar o estado do formulário se não existir
+        if "show_add_machine_form" not in st.session_state:
+            st.session_state["show_add_machine_form"] = False
+        
+        # Adicionar espaço para alinhar com o título
+        st.write("")
+        st.write("")
+        
+        # Botão compacto com + ou ×
+        button_text = "×" if st.session_state["show_add_machine_form"] else "+"
+        if st.button(button_text, key="add_machine_button"):
+            st.session_state["show_add_machine_form"] = not st.session_state["show_add_machine_form"]
+            st.rerun()
     
     # Fetch companies for the dropdown - admin sees all, fleet manager sees only their own
     if is_admin():
@@ -679,50 +698,55 @@ elif menu == "Machines":
         else:
             companies = []
     
-    with st.form("new_machine"):
-        st.subheader("Add New Machine")
-        machine_name = st.text_input("Machine Name")
-        # Based on schema, possible types are "truck" or "fixed"
-        machine_type = st.selectbox("Type", ["truck", "fixed"])
-        
-        # The user will select a company by ID - for fleet managers, this is prefilled
-        if is_admin():
-            company_options = [c["id"] for c in companies]
-            company_labels = [c["name"] for c in companies]
+    # Formulário de adição de máquina (apenas mostrado quando necessário)
+    if st.session_state["show_add_machine_form"]:
+        with st.form("new_machine"):
+            st.subheader("Add New Machine")
+            machine_name = st.text_input("Machine Name")
+            # Based on schema, possible types are "truck" or "fixed"
+            machine_type = st.selectbox("Type", ["truck", "fixed"])
             
-            if company_options:
-                selected_company_idx = st.selectbox(
-                    "Company",
-                    options=range(len(company_options)),
-                    format_func=lambda idx: company_labels[idx]
-                )
-                selected_company_id = company_options[selected_company_idx]
+            # The user will select a company by ID - for fleet managers, this is prefilled
+            if is_admin():
+                company_options = [c["id"] for c in companies]
+                company_labels = [c["name"] for c in companies]
+                
+                if company_options:
+                    selected_company_idx = st.selectbox(
+                        "Company",
+                        options=range(len(company_options)),
+                        format_func=lambda idx: company_labels[idx]
+                    )
+                    selected_company_id = company_options[selected_company_idx]
+                else:
+                    st.warning("No companies available. Please add a company first.")
+                    selected_company_id = None
             else:
-                st.warning("No companies available. Please add a company first.")
-                selected_company_id = None
-        else:
-            # Fleet managers can only add machines to their company
-            if companies:
-                selected_company_id = companies[0]["id"]
-                st.write(f"**Company:** {companies[0]['name']}")
-            else:
-                st.warning("Your company information is not available.")
-                selected_company_id = None
-        
-        submitted = st.form_submit_button("Add")
-        
-        if submitted and machine_name and selected_company_id:
-            # According to the schema: {"name": str, "type": str, "company_id": int}
-            payload = {
-                "name": machine_name,
-                "type": machine_type,
-                "company_id": selected_company_id
-            }
-            if post_api_data("machines", payload):
-                st.success(f"Machine '{machine_name}' added successfully!")
-                st.rerun()
+                # Fleet managers can only add machines to their company
+                if companies:
+                    selected_company_id = companies[0]["id"]
+                    st.write(f"**Company:** {companies[0]['name']}")
+                else:
+                    st.warning("Your company information is not available.")
+                    selected_company_id = None
+            
+            submitted = st.form_submit_button("Add")
+            
+            if submitted and machine_name and selected_company_id:
+                # According to the schema: {"name": str, "type": str, "company_id": int}
+                payload = {
+                    "name": machine_name,
+                    "type": machine_type,
+                    "company_id": selected_company_id
+                }
+                if post_api_data("machines", payload):
+                    st.success(f"Machine '{machine_name}' added successfully!")
+                    # Esconder o formulário depois de adicionar com sucesso
+                    st.session_state["show_add_machine_form"] = False
+                    st.rerun()
     
-    st.subheader("Existing Machines")
+    
+    st.subheader("Máquinas Atuais:")
     
     # Fetch machines - admins see all, fleet managers see only their company's
     if is_admin():
@@ -995,13 +1019,13 @@ elif menu == "Maintenances":
                     days_remaining = (date_val - today).days
                     
                     if days_remaining <= 0:
-                        status = "Ã°Å¸â€�Â´ Overdue"
+                        status = "ÃƒÂ°Ã…Â¸Ã¢â‚¬ï¿½Ã‚Â´ Overdue"
                     elif days_remaining <= 2:
-                        status = "Ã°Å¸Å¸Â  Urgent"
+                        status = "ÃƒÂ°Ã…Â¸Ã…Â¸Ã‚Â  Urgent"
                     elif days_remaining <= 7:
-                        status = "Ã°Å¸Å¸Â¡ Soon"
+                        status = "ÃƒÂ°Ã…Â¸Ã…Â¸Ã‚Â¡ Soon"
                     else:
-                        status = "Ã°Å¸Å¸Â¢ Scheduled"
+                        status = "ÃƒÂ°Ã…Â¸Ã…Â¸Ã‚Â¢ Scheduled"
                     
                     # Create an expander with maintenance details
                     with st.expander(f"{status} - {maint.get('type', 'Maintenance')} on {maint.get('machine_name', 'Unknown Machine')} ({date_val})"):
@@ -1168,7 +1192,7 @@ elif menu == "Users" and is_admin():
         
         # Display users in expandable sections
         for user in users:
-            status = "Ã°Å¸Å¸Â¢ Active" if user.get("is_active", True) else "Ã°Å¸â€�Â´ Inactive"
+            status = "ÃƒÂ°Ã…Â¸Ã…Â¸Ã‚Â¢ Active" if user.get("is_active", True) else "ÃƒÂ°Ã…Â¸Ã¢â‚¬ï¿½Ã‚Â´ Inactive"
             with st.expander(f"{user['username']} - {user.get('role', 'Unknown').replace('_', ' ').title()} ({status})"):
                 col1, col2 = st.columns([3, 1])
                 
