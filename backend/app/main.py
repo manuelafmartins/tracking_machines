@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from . import models
-from .routers import companies, machines, maintenances, auth_router, notifications_router, billing_router
+from .routers import companies, machines, maintenances, auth_router, notifications_router
+from .routers.billing_router import router as billing_router  # Explicit import
 from .alarms import start_scheduler
 from .create_admin import create_admin_user
 from .create_main_admin import create_main_admin
@@ -52,7 +53,7 @@ app.include_router(companies.router)
 app.include_router(machines.router)
 app.include_router(maintenances.router)
 app.include_router(notifications_router.router)
-app.include_router(billing_router.router)
+app.include_router(billing_router)
 
 @app.get("/")
 def home():
