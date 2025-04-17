@@ -125,7 +125,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Criar uma linha de botÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes para o menu
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
 with col1:
     dashboard_btn = st.button("Dashboard")
@@ -135,17 +135,19 @@ with col3:
     machines_btn = st.button("Máquinas")
 with col4:
     maintenances_btn = st.button("Manutenções")
+with col5:
+    billing_btn = st.button("Faturação") 
 
 # Adicione o botÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o "UsuÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rios" apenas para admins
 if is_admin():
-    with col5:
-        users_btn = st.button("Utilizadores")
     with col6:
+        users_btn = st.button("Utilizadores")
+    with col7:
         settings_btn = st.button("Configurações")
 else:
-    with col5:
-        settings_btn = st.button("Configurações")
     with col6:
+        settings_btn = st.button("Configurações")
+    with col7:
         users_btn = False
 
 # BotÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de logout pode ficar separado
@@ -168,6 +170,9 @@ elif machines_btn:
 elif maintenances_btn:
     st.session_state["current_page"] = "Maintenances"
     st.rerun()
+elif billing_btn:  # Novo botão
+    st.session_state["current_page"] = "Billing"
+    st.rerun()
 elif users_btn:
     st.session_state["current_page"] = "Users"
     st.rerun()
@@ -187,33 +192,22 @@ if menu == "Dashboard":
 elif menu == "Companies":
     companies.show_companies()
 
-# -----------------------------------------------------------------------------
-#                               MACHINES
-# -----------------------------------------------------------------------------
 elif menu == "Machines":
     machines.show_machines()
 
-# -----------------------------------------------------------------------------
-#                              MAINTENANCES
-# -----------------------------------------------------------------------------
 elif menu == "Maintenances":
     maintenances.show_maintenances()
 
-# -----------------------------------------------------------------------------
-#                                  USERS
-# -----------------------------------------------------------------------------
 elif menu == "Users" and is_admin():
     users.show_users()
 
-# -----------------------------------------------------------------------------
-#                               SETTINGS
-# -----------------------------------------------------------------------------
 elif menu == "Settings":
     settings.show_settings()
 
-# -----------------------------------------------------------------------------
-#                                LOGOUT
-# -----------------------------------------------------------------------------
+elif menu == "Billing":
+    from frontend.pages.billing import show_billing
+    show_billing()
+
 elif menu == "Logout":
     st.write("Confirm to logout?")
     if st.button("Confirm Logout"):

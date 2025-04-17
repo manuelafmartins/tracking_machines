@@ -218,3 +218,99 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
     role: Optional[str] = None
     company_id: Optional[int] = None
+
+
+# Schemas para serviços
+class ServiceBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    unit_price: float
+    tax_rate: float = 23.0
+    is_active: bool = True
+
+class ServiceCreate(ServiceBase):
+    pass
+
+class ServiceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    unit_price: Optional[float] = None
+    tax_rate: Optional[float] = None
+    is_active: Optional[bool] = None
+
+class Service(ServiceBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# Schemas para itens de fatura
+class InvoiceItemBase(BaseModel):
+    service_id: int
+    machine_id: Optional[int] = None
+    quantity: float = 1.0
+    description: Optional[str] = None
+    unit_price: Optional[float] = None  # Se não fornecido, usa o preço do serviço
+    tax_rate: Optional[float] = None    # Se não fornecido, usa a taxa do serviço
+
+class InvoiceItemCreate(InvoiceItemBase):
+    pass
+
+class InvoiceItemUpdate(BaseModel):
+    service_id: Optional[int] = None
+    machine_id: Optional[int] = None
+    quantity: Optional[float] = None
+    description: Optional[str] = None
+    unit_price: Optional[float] = None
+    tax_rate: Optional[float] = None
+
+class InvoiceItem(InvoiceItemBase):
+    id: int
+    invoice_id: int
+    subtotal: float
+    tax_amount: float
+    total: float
+    unit_price: float
+    tax_rate: float
+
+    class Config:
+        from_attributes = True
+
+# Schemas para faturas
+class InvoiceStatus(str, Enum):
+    DRAFT = "draft"
+    SENT = "sent"
+    PAID = "paid"
+    OVERDUE = "overdue"
+    CANCELED = "canceled"
+
+class InvoiceBase(BaseModel):
+    company_id: int
+    issue_date: Optional[date] = None
+    due_date: date
+    notes: Optional[str] = None
+    payment_method: Optional[str] = None
+    status: InvoiceStatus = InvoiceStatus.DRAFT
+
+class InvoiceCreate(InvoiceBase):
+    items: List[InvoiceItemCreate]
+
+class InvoiceUpdate(BaseModel):
+    issue_date: Optional[date] = None
+    due_date: Optional[date] = None
+    notes: Optional[str] = None
+    payment_method: Optional[str] = None
+    status: Optional[InvoiceStatus] = None
+    payment_date: Optional[date] = None
+
+class Invoice(InvoiceBase):
+    id: int
+    invoice_number: str
+    subtotal: float
+    tax_total: float
+    total: float
+    payment_date: Optional[date] = None
+    items: List[InvoiceItem]
+
+    class Config:
+        from_attributes = True
