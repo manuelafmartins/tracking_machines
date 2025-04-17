@@ -274,7 +274,7 @@ def show_dashboard():
                     formatted_date = date_obj.strftime("%A, %d %B %Y")
                     st.markdown(f"**{formatted_date}**")
                     for ev in events_by_date[date_str]:
-                        machine_nm = ev.get("machine_name", "Máquina Desconhecida")
+                        machine_nm = ev.get("machine_name", "")
                         comp_info = f" - {ev.get('company_name', '')}" if is_admin() and ev.get("company_name") else ""
                         st.markdown(f"* {ev['type']} para **{machine_nm}**{comp_info}")
                     st.markdown("---")
@@ -298,9 +298,9 @@ def show_dashboard():
             st.markdown(
                 f"""
                 <div style="background-color:#E8F5E9; padding:15px; border-radius:10px; text-align:center; border-left:5px solid #4CAF50">
-                    <h2 style="color:#4CAF50; margin:0">Completion Rate</h2>
+                    <h2 style="color:#4CAF50; margin:0">Taxa de Conclusão</h2>
                     <h1 style="font-size:36px; margin:10px 0">{completion_rate:.1f}%</h1>
-                    <p>{len(completed_maintenances)} of {total_past_maintenances} maintenances completed</p>
+                    <p>{len(completed_maintenances)} de {total_past_maintenances} manutenções concluídas</p>
                 </div>
                 """, 
                 unsafe_allow_html=True
@@ -313,9 +313,9 @@ def show_dashboard():
             st.markdown(
                 f"""
                 <div style="background-color:#FFEBEE; padding:15px; border-radius:10px; text-align:center; border-left:5px solid #F44336">
-                    <h2 style="color:#F44336; margin:0">Average Delay</h2>
-                    <h1 style="font-size:36px; margin:10px 0">{avg_delay:.1f} days</h1>
-                    <p>{len(overdue_maintenances)} overdue maintenances</p>
+                    <h2 style="color:#F44336; margin:0">Atraso Médio</h2>
+                    <h1 style="font-size:36px; margin:10px 0">{avg_delay:.1f} dias</h1>
+                    <p>{len(overdue_maintenances)} manutenções atrasadas</p>
                 </div>
                 """, 
                 unsafe_allow_html=True
@@ -328,16 +328,16 @@ def show_dashboard():
             st.markdown(
                 f"""
                 <div style="background-color:#FFF8E1; padding:15px; border-radius:10px; text-align:center; border-left:5px solid #FFC107">
-                    <h2 style="color:#FFA000; margin:0">Upcoming Workload</h2>
+                    <h2 style="color:#FFA000; margin:0">Carga de Trabalho Próxima</h2>
                     <h1 style="font-size:36px; margin:10px 0">{upcoming_workload}</h1>
-                    <p>Maintenances in the next 7 days</p>
+                    <p>Manutenções nos próximos 7 dias</p>
                 </div>
                 """, 
                 unsafe_allow_html=True
             )
         
         # Maintenance Timeline
-        st.markdown("### Maintenance Timeline")
+        st.markdown("### Linha do Tempo de Manutenções")
         
         if maintenances:
             # Prepare data for timeline
@@ -345,28 +345,28 @@ def show_dashboard():
             
             for m in maintenances:
                 machine = next((mac for mac in machines if mac["id"] == m["machine_id"]), None)
-                machine_name = machine["name"] if machine else "Unknown Machine"
+                machine_name = machine["name"] if machine else ""
                 
                 # Get company info if admin
                 company_name = ""
                 if is_admin() and machine:
                     company = next((comp for comp in companies if comp["id"] == machine["company_id"]), None)
-                    company_name = company["name"] if company else "Unknown Company"
+                    company_name = company["name"] if company else "Empresa Desconhecida"
                 
                 scheduled_date = datetime.strptime(m["scheduled_date"], "%Y-%m-%d").date()
                 
                 # Determine status and color
                 if m.get("completed", False):
-                    status = "Completed"
+                    status = "Concluída"
                     color = "#4CAF50"
                 elif scheduled_date < today:
-                    status = "Overdue"
+                    status = "Atrasada"
                     color = "#F44336"
                 elif today <= scheduled_date <= next_week:
-                    status = "Upcoming"
+                    status = "Próxima"
                     color = "#FFC107"
                 else:
-                    status = "Scheduled"
+                    status = "Agendada"
                     color = "#2196F3"
                 
                 # Create entry for the timeline
@@ -388,7 +388,7 @@ def show_dashboard():
             # Create timeline visualization
             fig = go.Figure()
             
-            for status, color in [("Completed", "#4CAF50"), ("Overdue", "#F44336"), ("Upcoming", "#FFC107"), ("Scheduled", "#2196F3")]:
+            for status, color in [("Concluída", "#4CAF50"), ("Atrasada", "#F44336"), ("Próxima", "#FFC107"), ("Agendada", "#2196F3")]:
                 # Filter entries by status
                 entries = [e for e in timeline_data if e["Status"] == status]
                 
@@ -404,17 +404,17 @@ def show_dashboard():
                             color=color
                         ),
                         name=status,
-                        text=[f"Type: {e['Type']}<br>Date: {e['Date']}<br>Status: {e['Status']}" + 
-                              (f"<br>Company: {e['Company']}" if e['Company'] else "") 
+                        text=[f"Tipo: {e['Type']}<br>Data: {e['Date']}<br>Estado: {e['Status']}" + 
+                              (f"<br>Empresa: {e['Company']}" if e['Company'] else "") 
                               for e in entries],
                         hoverinfo="text"
                     ))
             
             # Layout
             fig.update_layout(
-                title="Maintenance Timeline",
+                title="Linha do Tempo de Manutenções",
                 xaxis=dict(
-                    title="Date",
+                    title="Data",
                     tickformat="%d %b %Y",
                     range=[
                         (today - timedelta(days=30)),  # 30 days ago
@@ -422,7 +422,7 @@ def show_dashboard():
                     ]
                 ),
                 yaxis=dict(
-                    title="Machine",
+                    title="Máquina",
                 ),
                 height=400,
                 margin=dict(l=0, r=0, t=40, b=0),
@@ -441,29 +441,29 @@ def show_dashboard():
                 line_width=2,
                 line_dash="dash",
                 line_color="gray",
-                annotation_text="Today",
+                annotation_text="Hoje",
                 annotation_position="top right"
             )
             
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("No maintenance data available for the timeline.")
+            st.info("Não há dados de manutenção disponíveis para a linha do tempo.")
         
         # Maintenance Tables
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### Overdue Maintenances")
+            st.markdown("### Manutenções Atrasadas")
             if overdue_maintenances:
                 # Add machine name and company info
                 for m in overdue_maintenances:
                     machine = next((mac for mac in machines if mac["id"] == m["machine_id"]), None)
-                    m["machine_name"] = machine["name"] if machine else "Unknown Machine"
+                    m["machine_name"] = machine["name"] if machine else "Máquina Desconhecida"
                     
                     # Add company info if admin
                     if is_admin() and machine:
                         company = next((comp for comp in companies if comp["id"] == machine["company_id"]), None)
-                        m["company_name"] = company["name"] if company else "Unknown Company"
+                        m["company_name"] = company["name"] if company else "Empresa Desconhecida"
                 
                 # Sort by days overdue (most overdue first)
                 overdue_maintenances = sorted(overdue_maintenances, key=lambda x: x.get("days_overdue", 0), reverse=True)
@@ -477,12 +477,12 @@ def show_dashboard():
                         <div style="background-color:#FFEBEE; margin-bottom:10px; padding:10px; border-radius:5px; border-left:5px solid #F44336">
                             <div style="display:flex; justify-content:space-between">
                                 <div>
-                                    <h4 style="margin:0">{m.get('machine_name', 'Unknown Machine')}{company_info}</h4>
+                                    <h4 style="margin:0">{m.get('machine_name', 'Máquina Desconhecida')}{company_info}</h4>
                                     <p style="margin:5px 0">{m['type']}</p>
                                 </div>
                                 <div style="text-align:right">
-                                    <p style="color:#F44336; font-weight:bold; margin:0">{days_overdue} days overdue</p>
-                                    <p style="margin:5px 0">Due: {m['scheduled_date']}</p>
+                                    <p style="color:#F44336; font-weight:bold; margin:0">{days_overdue} dias de atraso</p>
+                                    <p style="margin:5px 0">Data: {m['scheduled_date']}</p>
                                 </div>
                             </div>
                         </div>
@@ -490,20 +490,20 @@ def show_dashboard():
                         unsafe_allow_html=True
                     )
             else:
-                st.success("No overdue maintenances! 🎉")
+                st.success("Não há manutenções atrasadas!")
         
         with col2:
-            st.markdown("### Upcoming Maintenances")
+            st.markdown("### Manutenções Próximas")
             if upcoming_maintenances:
                 # Add machine name and company info
                 for m in upcoming_maintenances:
                     machine = next((mac for mac in machines if mac["id"] == m["machine_id"]), None)
-                    m["machine_name"] = machine["name"] if machine else "Unknown Machine"
+                    m["machine_name"] = machine["name"] if machine else "Máquina Desconhecida"
                     
                     # Add company info if admin
                     if is_admin() and machine:
                         company = next((comp for comp in companies if comp["id"] == machine["company_id"]), None)
-                        m["company_name"] = company["name"] if company else "Unknown Company"
+                        m["company_name"] = company["name"] if company else "Empresa Desconhecida"
                 
                 # Sort by days remaining (soonest first)
                 upcoming_maintenances = sorted(upcoming_maintenances, key=lambda x: x.get("days_remaining", 0))
@@ -524,12 +524,12 @@ def show_dashboard():
                         <div style="background-color:{bg_color}; margin-bottom:10px; padding:10px; border-radius:5px; border-left:5px solid {border_color}">
                             <div style="display:flex; justify-content:space-between">
                                 <div>
-                                    <h4 style="margin:0">{m.get('machine_name', 'Unknown Machine')}{company_info}</h4>
+                                    <h4 style="margin:0">{m.get('machine_name', 'Máquina Desconhecida')}{company_info}</h4>
                                     <p style="margin:5px 0">{m['type']}</p>
                                 </div>
                                 <div style="text-align:right">
-                                    <p style="color:{border_color}; font-weight:bold; margin:0">In {days_remaining} days</p>
-                                    <p style="margin:5px 0">Date: {m['scheduled_date']}</p>
+                                    <p style="color:{border_color}; font-weight:bold; margin:0">Em {days_remaining} dias</p>
+                                    <p style="margin:5px 0">Data: {m['scheduled_date']}</p>
                                 </div>
                             </div>
                         </div>
@@ -537,11 +537,11 @@ def show_dashboard():
                         unsafe_allow_html=True
                     )
             else:
-                st.info("No upcoming maintenances in the next 7 days.")
+                st.info("Não há manutenções agendadas para os próximos 7 dias.")
                 
     with tab_analysis:
         # Fleet Analysis Tab
-        st.subheader("Fleet Analysis")
+        st.subheader("Análise da Frota")
         
         # Health Score calculation
         if machines and maintenances:
@@ -600,7 +600,7 @@ def show_dashboard():
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=avg_health,
-                title={"text": "Average Fleet Health"},
+                title={"text": "Média da Frota"},
                 gauge={
                     "axis": {"range": [0, 100], "tickwidth": 1},
                     "bar": {"color": "rgba(0,0,0,0)"},
@@ -625,32 +625,32 @@ def show_dashboard():
             st.plotly_chart(fig, use_container_width=True)
             
             # Machine health scores
-            st.markdown("### Machine Health Scores")
+            st.markdown("### Pontuação de Máquinas")
             
             # Convert to DataFrame
             health_df = pd.DataFrame({
-                "Machine": list(machine_health.keys()),
-                "Health Score": list(machine_health.values())
+                "Máquina": list(machine_health.keys()),
+                "Pontuação": list(machine_health.values())
             })
             
             # Sort by health score (ascending, so worst first)
-            health_df = health_df.sort_values("Health Score")
+            health_df = health_df.sort_values("Pontuação")
             
             # Bar chart for machine health
             if not health_df.empty:
                 fig = px.bar(
                     health_df,
-                    x="Machine",
-                    y="Health Score",
-                    title="Health Score by Machine",
-                    color="Health Score",
+                    x="Máquina",
+                    y="Pontuação",
+                    title="Pontuação por Máquina",
+                    color="Pontuação",
                     color_continuous_scale=["red", "orange", "green"],
                     range_color=[0, 100]
                 )
                 
                 fig.update_layout(
                     xaxis_title="",
-                    yaxis_title="Health Score",
+                    yaxis_title="Pontuação ",
                     yaxis=dict(range=[0, 100]),
                     height=400,
                     margin=dict(l=0, r=0, t=40, b=0)
@@ -659,7 +659,7 @@ def show_dashboard():
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Health breakdown table
-                with st.expander("Health Score Details", expanded=False):
+                with st.expander("Detalhes da Pontuação", expanded=False):
                     # Create summary table
                     health_details = []
                     
@@ -683,12 +683,12 @@ def show_dashboard():
                         
                         # Create detail row
                         detail = {
-                            "Machine": machine_name,
-                            "Health Score": f"{health_score:.1f}",
-                            "Total Maintenances": total_maint,
-                            "Completed": completed_maint,
-                            "Overdue": overdue_maint,
-                            "Completion Rate": f"{(completed_maint / total_maint * 100):.1f}%" if total_maint > 0 else "N/A"
+                            "Máquina": machine_name,
+                            "Pontuação": f"{health_score:.1f}",
+                            "Total de Manutenções": total_maint,
+                            "Concluídas": completed_maint,
+                            "Atrasadas": overdue_maint,
+                            "Taxa de Conclusão": f"{(completed_maint / total_maint * 100):.1f}%" if total_maint > 0 else "N/A"
                         }
                         
                         health_details.append(detail)
@@ -697,11 +697,11 @@ def show_dashboard():
                     health_details_df = pd.DataFrame(health_details)
                     st.dataframe(health_details_df)
             else:
-                st.info("No machine health data available.")
+                st.info("Não há dados das máquinas disponíveis.")
             
             # Maintenance Type Analysis
             if maintenances:
-                st.markdown("### Maintenance Type Analysis")
+                st.markdown("### Análise por Tipo de Manutenção")
                 
                 # Count maintenances by type
                 maint_types = {}
@@ -718,10 +718,10 @@ def show_dashboard():
                 maint_type_data = []
                 for mtype, data in maint_types.items():
                     maint_type_data.append({
-                        "Type": mtype,
-                        "Count": data["count"],
-                        "Completed": data["completed"],
-                        "Completion Rate": data["completed"] / data["count"] if data["count"] > 0 else 0
+                        "Tipo": mtype,
+                        "Quantidade": data["count"],
+                        "Concluídas": data["completed"],
+                        "Taxa de Conclusão": data["completed"] / data["count"] if data["count"] > 0 else 0
                     })
                 
                 maint_type_df = pd.DataFrame(maint_type_data)
@@ -735,15 +735,15 @@ def show_dashboard():
                         # Bar chart for maintenance types
                         fig = px.bar(
                             maint_type_df,
-                            x="Type",
-                            y="Count",
-                            title="Maintenance Count by Type",
-                            color="Type"
+                            x="Tipo",
+                            y="Quantidade",
+                            title="Quantidade de Manutenções por Tipo",
+                            color="Tipo"
                         )
                         
                         fig.update_layout(
                             xaxis_title="",
-                            yaxis_title="Number of Maintenances",
+                            yaxis_title="Número de Manutenções",
                             height=350,
                             margin=dict(l=0, r=0, t=40, b=0)
                         )
@@ -754,16 +754,16 @@ def show_dashboard():
                         # Completion rate by type
                         fig = px.bar(
                             maint_type_df,
-                            x="Type",
-                            y="Completion Rate",
-                            title="Completion Rate by Type",
-                            color="Type",
+                            x="Tipo",
+                            y="Taxa de Conclusão",
+                            title="Taxa de Conclusão por Tipo",
+                            color="Tipo",
                             text_auto='.0%'
                         )
                         
                         fig.update_layout(
                             xaxis_title="",
-                            yaxis_title="Completion Rate",
+                            yaxis_title="Taxa de Conclusão",
                             yaxis=dict(tickformat='.0%'),
                             height=350,
                             margin=dict(l=0, r=0, t=40, b=0)
@@ -771,13 +771,13 @@ def show_dashboard():
                         
                         st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.info("No maintenance type data available for analysis.")
+                    st.info("Não há dados de tipos de manutenção disponíveis para análise.")
         else:
-            st.info("Insufficient data to calculate health scores. Add machines and maintenance records to see detailed analytics.")
+            st.info("Dados insuficientes para calcular pontuações de saúde. Adicione máquinas e registros de manutenção para ver análises detalhadas.")
         
         # Machine Utilization and Performance (admin only)
         if is_admin() and machines and companies:
-            st.markdown("### Machine Utilization by Company")
+            st.markdown("### Utilização de Máquinas por Empresa")
             
             # Calculate machine counts by company
             company_machine_counts = {}
@@ -790,34 +790,34 @@ def show_dashboard():
             
             # Create DataFrame
             company_df = pd.DataFrame({
-                "Company": list(company_machine_counts.keys()),
-                "Machine Count": list(company_machine_counts.values())
+                "Empresa": list(company_machine_counts.keys()),
+                "Quantidade de Máquinas": list(company_machine_counts.values())
             })
             
             # Sort by machine count (descending)
-            company_df = company_df.sort_values("Machine Count", ascending=False)
+            company_df = company_df.sort_values("Quantidade de Máquinas", ascending=False)
             
             # Bar chart
             if not company_df.empty:
                 fig = px.bar(
                     company_df,
-                    x="Company",
-                    y="Machine Count",
-                    title="Machine Count by Company",
-                    color="Machine Count",
+                    x="Empresa",
+                    y="Quantidade de Máquinas",
+                    title="Quantidade de Máquinas por Empresa",
+                    color="Quantidade de Máquinas",
                     color_continuous_scale=px.colors.sequential.Viridis
                 )
                 
                 fig.update_layout(
                     xaxis_title="",
-                    yaxis_title="Number of Machines",
+                    yaxis_title="Número de Máquinas",
                     height=400,
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("No company data available for analysis.")
+                st.info("Não há dados de empresas disponíveis para análise.")
 
 def format_maintenance_date(date_str):
     """Format a date string as a more readable format"""
