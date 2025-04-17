@@ -1,12 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-FF ManutenControl - Sistema de Gestão de Manutenção de Frotas
-
-Uma aplicação moderna para controlo de manutenções de máquinas e veículos,
-desenvolvida com Streamlit para uma interface responsiva e intuitiva.
-
-© 2025 Filipe Ferreira - Todos os direitos reservados.
-"""
 
 from __future__ import annotations
 
