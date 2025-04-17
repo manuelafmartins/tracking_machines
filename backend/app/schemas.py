@@ -70,14 +70,20 @@ class CompanyBase(BaseModel):
     name: str
     address: Optional[str] = None
     logo_path: Optional[str] = None
-
+    tax_id: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = "Portugal"
+    billing_email: Optional[str] = None
+    phone: Optional[str] = None
+    payment_method: Optional[str] = None
+    iban: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
     """
     Schema used when creating a new company.
     """
     pass
-
 
 class CompanyUpdate(BaseModel):
     """
@@ -86,6 +92,14 @@ class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
     logo_path: Optional[str] = None
+    tax_id: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    billing_email: Optional[str] = None
+    phone: Optional[str] = None
+    payment_method: Optional[str] = None
+    iban: Optional[str] = None
 
 
 class Company(CompanyBase):

@@ -25,10 +25,53 @@ def show_companies():
     if is_admin():
         with st.form("new_company"):
             st.subheader("Add New Company")
+    
+            # Dados básicos
             company_name = st.text_input("Company Name")
-            company_address = st.text_input("Address (Optional)")
-            company_logo = st.file_uploader("Logo da Empresa (opcional)", type=["png", "jpg", "jpeg"])
+            
+            # Nova seção para dados de faturação
+            st.markdown("### Dados para faturação")
+            tax_id = st.text_input("NIF/NIPC")
+            
+            # Morada e localização
+            col1, col2 = st.columns(2)
+            with col1:
+                company_address = st.text_input("Address")
+                postal_code = st.text_input("Postal Code")
+            with col2:
+                city = st.text_input("City")
+                country = st.text_input("Country", value="Portugal")
+            
+            # Contactos
+            col1, col2 = st.columns(2)
+            with col1:
+                billing_email = st.text_input("Billing Email")
+            with col2:
+                phone = st.text_input("Phone")
+            
+            # Detalhes bancários
+            payment_method = st.selectbox("Preferred Payment Method", 
+                                        ["Bank Transfer", "Direct Debit", "Credit Card", "Other"])
+            iban = st.text_input("IBAN (for bank transfers)")
+            
+            # Logo
+            company_logo = st.file_uploader("Company Logo (optional)", type=["png", "jpg", "jpeg"])
+            
             submitted = st.form_submit_button("Add")
+            
+            if submitted and company_name:
+                company_data = {
+                    "name": company_name,
+                    "address": company_address,
+                    "tax_id": tax_id,
+                    "postal_code": postal_code,
+                    "city": city,
+                    "country": country,
+                    "billing_email": billing_email,
+                    "phone": phone,
+                    "payment_method": payment_method,
+                    "iban": iban
+                }
             
             if submitted and company_name:
                 company_data = {"name": company_name}
@@ -81,20 +124,49 @@ def show_companies():
                     logo_path = os.path.join("frontend/images", comp.get("logo_path"))
                     if os.path.exists(logo_path):
                         st.image(logo_path, width=150, caption="Logo atual da empresa")
+                
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
-                    st.write(f"**Address:** {comp.get('address', 'N/A')}")
+                    # Basic info
+                    st.write(f"**Name:** {comp['name']}")
                     
-                    # Get machines for this company
+                    # Billing info section
+                    if any(comp.get(field) for field in ["tax_id", "postal_code", "city", "billing_email", "phone", "iban"]):
+                        st.markdown("### Dados para faturação")
+                        
+                        if comp.get("tax_id"):
+                            st.write(f"**NIF/NIPC:** {comp.get('tax_id')}")
+                        
+                        # Address info
+                        address_parts = []
+                        if comp.get("address"):
+                            address_parts.append(comp.get("address"))
+                        if comp.get("postal_code") or comp.get("city"):
+                            postal_city = f"{comp.get('postal_code', '')} {comp.get('city', '')}".strip()
+                            if postal_city:
+                                address_parts.append(postal_city)
+                        if comp.get("country"):
+                            address_parts.append(comp.get("country"))
+                        
+                        if address_parts:
+                            st.write(f"**Address:** {', '.join(address_parts)}")
+                        
+                        # Contact info
+                        if comp.get("billing_email"):
+                            st.write(f"**Billing Email:** {comp.get('billing_email')}")
+                        if comp.get("phone"):
+                            st.write(f"**Phone:** {comp.get('phone')}")
+                        
+                        # Payment info
+                        if comp.get("payment_method"):
+                            st.write(f"**Payment Method:** {comp.get('payment_method')}")
+                        if comp.get("iban"):
+                            st.write(f"**IBAN:** {comp.get('iban')}")
+                    
+                    # Get machines for this company (código existente)
                     machines = get_api_data(f"machines/company/{comp['id']}") or []
                     st.write(f"**Total Machines:** {len(machines)}")
-                    
-                    # Get users for this company (admin only)
-                    if is_admin():
-                        # This would require a new endpoint to get users by company
-                        # st.write(f"**Users:** ...")
-                        pass
                 
                 # Edit/Delete buttons (admin only)
                 if is_admin():
@@ -114,14 +186,62 @@ def show_companies():
                 with st.form(f"edit_company_{comp['id']}"):
                     st.subheader(f"Edit Company: {comp['name']}")
                     new_name = st.text_input("Company Name", value=st.session_state["edit_company_name"])
-                    new_address = st.text_input("Address", value=st.session_state["edit_company_address"])
-                    new_logo = st.file_uploader("Atualizar Logo (opcional)", type=["png", "jpg", "jpeg"])
                     
+                    # Dados de faturação
+                    st.markdown("### Dados para faturação")
+                    new_tax_id = st.text_input("NIF/NIPC", value=comp.get("tax_id", ""))
+                    
+                    # Morada e localização
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        new_address = st.text_input("Address", value=st.session_state["edit_company_address"])
+                        new_postal_code = st.text_input("Postal Code", value=comp.get("postal_code", ""))
+                    with col2:
+                        new_city = st.text_input("City", value=comp.get("city", ""))
+                        new_country = st.text_input("Country", value=comp.get("country", "Portugal"))
+                    
+                    # Contactos
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        new_billing_email = st.text_input("Billing Email", value=comp.get("billing_email", ""))
+                    with col2:
+                        new_phone = st.text_input("Phone", value=comp.get("phone", ""))
+                    
+                    # Detalhes bancários
+                    payment_options = ["Bank Transfer", "Direct Debit", "Credit Card", "Other"]
+                    current_payment = comp.get("payment_method", "Bank Transfer")
+                    payment_index = payment_options.index(current_payment) if current_payment in payment_options else 0
+                    
+                    new_payment_method = st.selectbox("Preferred Payment Method", 
+                                                    payment_options, 
+                                                    index=payment_index)
+                    
+                    new_iban = st.text_input("IBAN (for bank transfers)", value=comp.get("iban", ""))
+                    
+                    # Logo
+                    new_logo = st.file_uploader("Update Logo (optional)", type=["png", "jpg", "jpeg"])
+                    
+                    # Botões de ação
                     col1, col2 = st.columns(2)
                     with col1:
                         submit_edit = st.form_submit_button("Save Changes")
                     with col2:
                         cancel_edit = st.form_submit_button("Cancel")
+                    
+                    if submit_edit and new_name:
+                        # Atualizar os dados da empresa
+                        update_data = {
+                            "name": new_name,
+                            "address": new_address,
+                            "tax_id": new_tax_id,
+                            "postal_code": new_postal_code,
+                            "city": new_city,
+                            "country": new_country,
+                            "billing_email": new_billing_email,
+                            "phone": new_phone,
+                            "payment_method": new_payment_method,
+                            "iban": new_iban
+                        }
                     
                     if submit_edit and new_name:
                         if submit_edit and new_name and new_logo:

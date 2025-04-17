@@ -40,8 +40,20 @@ class Company(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
+    
+    # Campos existentes
     address = Column(String, nullable=True)
     logo_path = Column(String, nullable=True)
+    
+    # Novos campos para faturação
+    tax_id = Column(String, nullable=True)   
+    postal_code = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    country = Column(String, nullable=True, default="Portugal")
+    billing_email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    payment_method = Column(String, nullable=True)
+    iban = Column(String, nullable=True)
 
     machines = relationship(
         "Machine",
