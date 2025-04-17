@@ -1,5 +1,5 @@
 """
-run_frontend.py – launches the Streamlit UI for the Fleet App.
+run_frontend.py - launches the Streamlit UI for the Fleet App.
 """
 
 import os
@@ -7,6 +7,7 @@ import sys
 import subprocess
 from multiprocessing import freeze_support
 import logging
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,11 +17,11 @@ logging.basicConfig(
 def run() -> None:
     """
     Starts Streamlit in headless mode.
-    • `STREAMLIT_HOST`   – bind address (default: 0.0.0.0)
-    • `STREAMLIT_PORT`   – port (default: 8501)
-    • `STREAMLIT_RELOAD` – 'true' enables hot‑reload for dev
+    • `STREAMLIT_HOST`   - bind address (default: 0.0.0.0)
+    • `STREAMLIT_PORT`   - port (default: 8501)
+    • `STREAMLIT_RELOAD` - 'true' enables hot-reload for dev
     """
-    freeze_support()                     # Windows / PyInstaller safety
+    freeze_support()            
     host   = os.getenv("STREAMLIT_HOST",   "0.0.0.0")
     port   = os.getenv("STREAMLIT_PORT",   "8501")
     reload = os.getenv("STREAMLIT_RELOAD", "false").lower() == "true"
