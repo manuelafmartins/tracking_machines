@@ -1,23 +1,32 @@
-# routers/auth_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+import logging
 from datetime import timedelta
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+
 from .. import database, crud, schemas, models
-from ..security import verify_password, create_token, ACCESS_TOKEN_EXPIRE_MINUTES, create_user_token
+from ..security import (
+    verify_password,
+    create_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    create_user_token
+)
 from ..dependencies import get_admin_user, get_current_user
 from ..notifications import notify_new_user_created
 from ..crud import get_company_by_id
-import logging
 
 router = APIRouter(tags=["authentication"], prefix="/auth")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+
 @router.post("/login", response_model=schemas.Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(database.get_db)
+):
     user = crud.get_user_by_username(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -25,24 +34,16 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
-    
-    # Set token expiration time
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    # Create token payload with user info
     token_data = create_user_token(user)
-    
-    # Generate JWT token
     access_token = create_token(token_data, expires_delta=access_token_expires)
-    
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.id,
         "username": user.username,
@@ -50,46 +51,55 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "company_id": user.company_id
     }
 
+
 @router.get("/users/me", response_model=schemas.User)
-def get_current_user_info(current_user: models.User = Depends(get_current_user)):
-    """Get current logged in user information"""
+def get_current_user_info(
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Returns information about the currently logged-in user.
+    """
     return current_user
+
 
 @router.get("/users", response_model=List[schemas.User])
 def get_users(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_admin_user)
 ):
-    """Get all users (admin only)"""
-    users = crud.get_users(db, skip=skip, limit=limit)
-    return users
+    """
+    Retrieves all users (admin only).
+    """
+    return crud.get_users(db, skip=skip, limit=limit)
+
 
 @router.post("/users", response_model=schemas.User)
 def create_new_user(
-    user: schemas.UserCreate, 
+    user: schemas.UserCreate,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_admin_user)
 ):
-    """Create a new user (admin only)"""
+    """
+    Creates a new user (admin only).
+    """
     db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
-    
-    # Criar o usuário
+
     new_user = crud.create_user(db=db, user=user, role=user.role)
-    
-    # Obter nome da empresa se for um usuário de fleet manager
+
+    # Include company name if the new user is a fleet manager
     company_name = None
     if user.role == models.UserRoleEnum.fleet_manager and user.company_id:
         company = get_company_by_id(db, user.company_id)
         company_name = company.name if company else None
-    
-    # Enviar notificação
+
+    # Send notification (ignore any failures)
     try:
         role_display = "Administrador" if user.role == models.UserRoleEnum.admin else "Gestor de Frota"
         notify_new_user_created(
@@ -99,10 +109,10 @@ def create_new_user(
             company_name=company_name
         )
     except Exception as e:
-        # Log error but don't fail the request
-        logging.error(f"Failed to send user creation notification: {str(e)}")
-    
+        logging.error(f"Failed to send user creation notification: {e}")
+
     return new_user
+
 
 @router.put("/users/{user_id}", response_model=schemas.User)
 def update_user(
@@ -111,21 +121,22 @@ def update_user(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Update user information"""
-    # Only admins can update other users or change roles
+    """
+    Updates user information. 
+    Only admins can update other users or change roles.
+    """
     if current_user.id != user_id and current_user.role != models.UserRoleEnum.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to update other users"
         )
-    
-    # Only admin can change roles
+
     if user_data.role is not None and current_user.role != models.UserRoleEnum.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to change roles"
         )
-    
+
     updated_user = crud.update_user(db, user_id, user_data)
     if not updated_user:
         raise HTTPException(
@@ -134,24 +145,26 @@ def update_user(
         )
     return updated_user
 
+
 @router.delete("/users/{user_id}", response_model=dict)
 def delete_user(
     user_id: int,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_admin_user)
 ):
-    """Delete a user (admin only)"""
+    """
+    Deletes a user (admin only).
+    """
     if current_user.id == user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot delete your own account"
         )
-    
+
     result = crud.delete_user(db, user_id)
     if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
     return {"success": True, "message": "User deleted successfully"}
