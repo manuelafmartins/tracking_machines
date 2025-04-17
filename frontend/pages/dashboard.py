@@ -7,314 +7,285 @@ from datetime import datetime, timedelta
 import calendar
 from frontend.utils.api import get_api_data
 from frontend.utils.auth import is_admin
+import locale
+
+try:
+    locale.setlocale(locale.LC_TIME, "pt_PT.UTF-8")
+except locale.Error:
+    # Fall back silently if the locale is unavailable on the host system
+    pass
 
 def show_dashboard():
-    """Exibe o dashboard principal com métricas e gráficos avançados"""
-    st.title("Fleet Dashboard")
+    """Display the main fleet dashboard with metrics and advanced charts.
+
+    All UI labels are shown in Portuguese; the code (variables, comments and
+    doc‑strings) remains in English.
+    """
+
+    # Title -----------------------------------------------------------------
+    st.title("Dashboard da Frota")
+
     
-    # Fetch data from the API - different behavior based on user role
+    # ----------------------------------------------------------------------
+    # Data fetching
+    # ----------------------------------------------------------------------
     if is_admin():
-        # Admin sees all data
         machines = get_api_data("machines") or []
         maintenances = get_api_data("maintenances") or []
         companies = get_api_data("companies") or []
     else:
-        # Fleet manager sees only their company's data
         company_id = st.session_state.get("company_id")
         if company_id:
             machines = get_api_data(f"machines/company/{company_id}") or []
             maintenances = get_api_data(f"maintenances/company/{company_id}") or []
-            companies = [get_api_data(f"companies/{company_id}")] if get_api_data(f"companies/{company_id}") else []
+            company_data = get_api_data(f"companies/{company_id}")
+            companies = [company_data] if company_data else []
         else:
-            machines = []
-            maintenances = []
-            companies = []
+            machines, maintenances, companies = [], [], []
     
-    # Calculate maintenance statistics
+    # ----------------------------------------------------------------------
+    # Helpers and filters
+    # ----------------------------------------------------------------------
     today = datetime.now().date()
     next_week = today + timedelta(days=7)
     next_month = today + timedelta(days=30)
-    
-    # Filter upcoming maintenances
-    upcoming_maintenances = []
-    completed_maintenances = []
-    overdue_maintenances = []
+
+    upcoming_maintenances: list[dict] = []
+    completed_maintenances: list[dict] = []
+    overdue_maintenances: list[dict] = []
+
     for m in maintenances:
-        # Convert "scheduled_date" from string to date
-        sched_date = datetime.strptime(m["scheduled_date"], "%Y-%m-%d").date()
+        scheduled_date = datetime.strptime(m["scheduled_date"], "%Y-%m-%d").date()
         if m.get("completed", False):
             completed_maintenances.append(m)
-        elif sched_date < today:
+        elif scheduled_date < today:
+            m["days_overdue"] = (today - scheduled_date).days
             overdue_maintenances.append(m)
-            m["days_overdue"] = (today - sched_date).days
-        elif today <= sched_date <= next_week:
-            m["days_remaining"] = (sched_date - today).days
+        elif today <= scheduled_date <= next_week:
+            m["days_remaining"] = (scheduled_date - today).days
             upcoming_maintenances.append(m)
     
-    # Dashboard Tabs
-    tab1, tab2, tab3 = st.tabs(["Overview", "Maintenance Status", "Fleet Analysis"])
-    
-    with tab1:
-        # Overview Tab
-        st.subheader("Fleet Overview")
-        
-        # Colored Metric Cards
-        col1, col2, col3, col4 = st.columns(4)
-        
-        # Card 1: Total Machines
-        with col1:
+    # ----------------------------------------------------------------------
+    # TABS ------------------------------------------------------------------
+    # ----------------------------------------------------------------------
+    tab_overview, tab_status, tab_analysis = st.tabs([
+        "Visão Geral",
+        "Estado da Manutenção",
+        "Análise da Frota",
+    ])
+
+    # ----------------------------------------------------------------------
+    # TAB 1 – OVERVIEW ------------------------------------------------------
+    # ----------------------------------------------------------------------
+    with tab_overview:
+        st.subheader("Visão Geral da Frota")
+
+        # METRIC CARDS ------------------------------------------------------
+        card_col1, card_col2, card_col3, card_col4 = st.columns(4)
+
+        # Total machines
+        with card_col1:
             st.markdown(
                 f"""
-                <div style="background-color:#1E88E5; padding:10px; border-radius:10px; text-align:center">
-                    <h1 style="color:white; font-size:36px">{len(machines)}</h1>
-                    <p style="color:white; font-size:16px">Total Machines</p>
-                </div>
-                """, 
-                unsafe_allow_html=True
+                <div style='background-color:#1E88E5;padding:10px;border-radius:10px;text-align:center'>
+                    <h1 style='color:white;font-size:36px'>{len(machines)}</h1>
+                    <p style='color:white;font-size:16px'>Total de Máquinas</p>
+                </div>""",
+                unsafe_allow_html=True,
             )
-        
-        # Card 2: Upcoming Maintenances
-        with col2:
+
+        # Upcoming maintenances
+        with card_col2:
             st.markdown(
                 f"""
-                <div style="background-color:#FFC107; padding:10px; border-radius:10px; text-align:center">
-                    <h1 style="color:white; font-size:36px">{len(upcoming_maintenances)}</h1>
-                    <p style="color:white; font-size:16px">Upcoming Maintenances</p>
-                </div>
-                """, 
-                unsafe_allow_html=True
+                <div style='background-color:#FFC107;padding:10px;border-radius:10px;text-align:center'>
+                    <h1 style='color:white;font-size:36px'>{len(upcoming_maintenances)}</h1>
+                    <p style='color:white;font-size:16px'>Manutenções Próximas</p>
+                </div>""",
+                unsafe_allow_html=True,
             )
-        
-        # Card 3: Overdue Maintenances
-        with col3:
+
+        # Overdue maintenances
+        with card_col3:
             st.markdown(
                 f"""
-                <div style="background-color:#F44336; padding:10px; border-radius:10px; text-align:center">
-                    <h1 style="color:white; font-size:36px">{len(overdue_maintenances)}</h1>
-                    <p style="color:white; font-size:16px">Overdue Maintenances</p>
-                </div>
-                """, 
-                unsafe_allow_html=True
+                <div style='background-color:#F44336;padding:10px;border-radius:10px;text-align:center'>
+                    <h1 style='color:white;font-size:36px'>{len(overdue_maintenances)}</h1>
+                    <p style='color:white;font-size:16px'>Manutenções Atrasadas</p>
+                </div>""",
+                unsafe_allow_html=True,
             )
-        
-        # Card 4: Companies
-        with col4:
+
+        # Companies
+        with card_col4:
             st.markdown(
                 f"""
-                <div style="background-color:#4CAF50; padding:10px; border-radius:10px; text-align:center">
-                    <h1 style="color:white; font-size:36px">{len(companies)}</h1>
-                    <p style="color:white; font-size:16px">Companies</p>
-                </div>
-                """, 
-                unsafe_allow_html=True
+                <div style='background-color:#4CAF50;padding:10px;border-radius:10px;text-align:center'>
+                    <h1 style='color:white;font-size:36px'>{len(companies)}</h1>
+                    <p style='color:white;font-size:16px'>Empresas</p>
+                </div>""",
+                unsafe_allow_html=True,
             )
-        
-        # Distribution Charts
-        st.markdown("### Fleet Distribution")
-        col1, col2 = st.columns(2)
-        
-        # Machine Type Distribution
-        with col1:
+
+        # DISTRIBUTION CHARTS ----------------------------------------------
+        st.markdown("### Distribuição da Frota")
+        dist_col1, dist_col2 = st.columns(2)
+
+        # Distribution by machine type (pie) --------------------------------
+        with dist_col1:
             if machines:
-                type_counts = {}
+                type_counts: dict[str, int] = {}
                 for m in machines:
-                    machine_type = m["type"]
-                    type_counts[machine_type] = type_counts.get(machine_type, 0) + 1
-                
-                df_types = pd.DataFrame({
-                    "Machine Type": list(type_counts.keys()),
-                    "Count": list(type_counts.values())
-                })
-                
+                    m_type = m["type"]
+                    type_counts[m_type] = type_counts.get(m_type, 0) + 1
+
+                df_types = pd.DataFrame(
+                    {"Tipo de Máquina": list(type_counts.keys()), "Quantidade": list(type_counts.values())}
+                )
+
                 fig = px.pie(
-                    df_types, 
-                    values="Count", 
-                    names="Machine Type", 
-                    title="Distribution by Machine Type",
+                    df_types,
+                    values="Quantidade",
+                    names="Tipo de Máquina",
+                    title="Distribuição por Tipo de Máquina",
                     color_discrete_sequence=px.colors.sequential.Blues,
-                    hole=0.4
+                    hole=0.4,
                 )
                 fig.update_layout(
                     legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
                     margin=dict(t=60, b=0, l=0, r=0),
-                    height=320
+                    height=320,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("No machine data available to display distribution.")
-        
-        # Company Distribution (Admin only)
-        with col2:
+                st.info("Sem dados de máquinas disponíveis para mostrar a distribuição.")
+
+        # Distribution by company (admin) -----------------------------------
+        with dist_col2:
             if is_admin() and machines and len(companies) > 1:
-                company_machine_counts = {}
+                company_machine_counts: dict[str, int] = {}
                 for m in machines:
-                    company_id = m["company_id"]
-                    company_name = next((c["name"] for c in companies if c["id"] == company_id), "Unknown")
-                    company_machine_counts[company_name] = company_machine_counts.get(company_name, 0) + 1
-                
-                df_company = pd.DataFrame({
-                    "Company": list(company_machine_counts.keys()),
-                    "Machines": list(company_machine_counts.values())
-                })
-                
+                    comp_id = m["company_id"]
+                    comp_name = next((c["name"] for c in companies if c["id"] == comp_id), "Desconhecida")
+                    company_machine_counts[comp_name] = company_machine_counts.get(comp_name, 0) + 1
+
+                df_company = pd.DataFrame(
+                    {"Empresa": list(company_machine_counts.keys()), "Máquinas": list(company_machine_counts.values())}
+                )
+
                 fig = px.bar(
-                    df_company, 
-                    x="Company", 
-                    y="Machines",
-                    title="Machines by Company",
-                    color="Machines",
-                    color_continuous_scale=px.colors.sequential.Viridis
+                    df_company,
+                    x="Empresa",
+                    y="Máquinas",
+                    title="Máquinas por Empresa",
+                    color="Máquinas",
+                    color_continuous_scale=px.colors.sequential.Viridis,
                 )
                 fig.update_layout(
                     xaxis_title="",
-                    yaxis_title="Number of Machines",
+                    yaxis_title="Número de Máquinas",
                     margin=dict(t=60, b=0, l=0, r=0),
-                    height=320
+                    height=320,
                 )
                 st.plotly_chart(fig, use_container_width=True)
             elif not is_admin() and machines:
-                # For fleet managers, show a different visualization
-                # For example, pie chart of machine types in their company
-                maint_status_counts = {
-                    "Upcoming": len(upcoming_maintenances),
-                    "Completed": len(completed_maintenances),
-                    "Overdue": len(overdue_maintenances)
+                status_counts = {
+                    "Próximas": len(upcoming_maintenances),
+                    "Concluídas": len(completed_maintenances),
+                    "Atrasadas": len(overdue_maintenances),
                 }
-                
-                df_status = pd.DataFrame({
-                    "Status": list(maint_status_counts.keys()),
-                    "Count": list(maint_status_counts.values())
-                })
-                
-                # Only show if there's data
-                if sum(maint_status_counts.values()) > 0:
+                if sum(status_counts.values()) > 0:
+                    df_status = pd.DataFrame({"Estado": status_counts.keys(), "Quantidade": status_counts.values()})
                     fig = px.pie(
-                        df_status, 
-                        values="Count", 
-                        names="Status", 
-                        title="Maintenance Status Overview",
-                        color="Status",
+                        df_status,
+                        values="Quantidade",
+                        names="Estado",
+                        title="Visão Geral do Estado da Manutenção",
+                        color="Estado",
                         color_discrete_map={
-                            "Upcoming": "#FFC107",
-                            "Completed": "#4CAF50",
-                            "Overdue": "#F44336"
+                            "Próximas": "#FFC107",
+                            "Concluídas": "#4CAF50",
+                            "Atrasadas": "#F44336",
                         },
-                        hole=0.4
+                        hole=0.4,
                     )
                     fig.update_layout(
                         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
                         margin=dict(t=60, b=0, l=0, r=0),
-                        height=320
+                        height=320,
                     )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
-                    st.info("No maintenance data available to display distribution.")
+                    st.info("Sem dados de manutenção disponíveis para mostrar.")
             else:
-                st.info("No data available to display distribution.")
-        
-        # Maintenance Calendar for the next 30 days
-        st.markdown("### Maintenance Calendar (Next 30 Days)")
-        
-        # Collect maintenance events for the next 30 days
-        calendar_maintenances = []
+                st.info("Sem dados disponíveis para mostrar a distribuição.")
+
+        # MAINTENANCE CALENDAR ---------------------------------------------
+        st.markdown("### Calendário de Manutenções (Próximos 30 Dias)")
+        calendar_events: list[dict] = []
         for m in maintenances:
             sched_date = datetime.strptime(m["scheduled_date"], "%Y-%m-%d").date()
             if today <= sched_date <= next_month and not m.get("completed", False):
-                # Get machine details
                 machine = next((mac for mac in machines if mac["id"] == m["machine_id"]), None)
                 if machine:
                     m["machine_name"] = machine["name"]
-                    
-                    # Get company details if admin
                     if is_admin():
-                        company = next((comp for comp in companies if comp["id"] == machine["company_id"]), None)
+                        company = next((c for c in companies if c["id"] == machine["company_id"]), None)
                         if company:
                             m["company_name"] = company["name"]
-                
-                calendar_maintenances.append(m)
-        
-        # Create calendar heatmap
-        if calendar_maintenances:
-            # Prepare data for heatmap
+                calendar_events.append(m)
+
+        if calendar_events:
             days = [(today + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-            weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            
-            # Count events per day
-            events_per_day = {}
-            for day in days:
-                events_per_day[day] = 0
-            
-            for m in calendar_maintenances:
-                day = m["scheduled_date"]
-                if day in events_per_day:
-                    events_per_day[day] += 1
-            
-            # Create a list for each week
-            calendar_data = []
-            week_data = [0] * 7  # 7 days in a week
-            
-            for day in days:
-                date_obj = datetime.strptime(day, "%Y-%m-%d")
-                weekday = date_obj.weekday()  # 0 for Monday, 6 for Sunday
-                
-                # Adjust week_data with the count for this day
+            weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+            events_per_day = {day: 0 for day in days}
+            for m in calendar_events:
+                events_per_day[m["scheduled_date"]] += 1
+
+            week_data: list[list[int]] = [0] * 7
+            calendar_data: list[list[int]] = []
+            for idx, day in enumerate(days):
+                weekday = datetime.strptime(day, "%Y-%m-%d").weekday()
                 week_data[weekday] = events_per_day[day]
-                
-                # If it's the end of the week or the last day, add the week to calendar_data
+                # Close the week either on Sunday or on the last iteration
                 if weekday == 6 or day == days[-1]:
                     calendar_data.append(week_data)
                     week_data = [0] * 7
-            
-            # Create heatmap
-            fig = go.Figure(data=go.Heatmap(
-                z=calendar_data,
-                x=weekdays,
-                y=[f"Week {i+1}" for i in range(len(calendar_data))],
-                colorscale="YlOrRd",
-                showscale=False
-            ))
-            
-            fig.update_layout(
-                title="Maintenance Events Heatmap",
-                height=250,
-                margin=dict(l=0, r=0, t=40, b=0)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Show upcoming events as a list below the heatmap
-            with st.expander("View Upcoming Maintenance Details", expanded=True):
-                if calendar_maintenances:
-                    # Group by date
-                    events_by_date = {}
-                    for event in calendar_maintenances:
-                        date = event["scheduled_date"]
-                        if date not in events_by_date:
-                            events_by_date[date] = []
-                        events_by_date[date].append(event)
-                    
-                    # Sort dates
-                    sorted_dates = sorted(events_by_date.keys())
-                    
-                    for date in sorted_dates[:10]:  # Show only next 10 days with events
-                        date_obj = datetime.strptime(date, "%Y-%m-%d").date()
-                        date_str = date_obj.strftime("%A, %d %B %Y")
-                        st.markdown(f"**{date_str}**")
-                        
-                        for event in events_by_date[date]:
-                            machine_name = event.get("machine_name", "Unknown Machine")
-                            company_info = f" - {event.get('company_name', '')}" if is_admin() and "company_name" in event else ""
-                            st.markdown(f"* {event['type']} for **{machine_name}**{company_info}")
-                        
-                        st.markdown("---")
-                else:
-                    st.info("No upcoming maintenance events in the next 30 days.")
-        else:
-            st.info("No maintenance events scheduled for the next 30 days.")
 
-    with tab2:
-        # Maintenance Status Tab
-        st.subheader("Maintenance Status")
+            fig = go.Figure(
+                data=go.Heatmap(
+                    z=calendar_data,
+                    x=weekdays,
+                    y=[f"Semana {i+1}" for i in range(len(calendar_data))],
+                    colorscale="YlOrRd",
+                    showscale=False,
+                )
+            )
+            fig.update_layout(title="Mapa de Calor de Eventos de Manutenção", height=250, margin=dict(l=0, r=0, t=40, b=0))
+            st.plotly_chart(fig, use_container_width=True)
+
+            with st.expander("Ver Detalhes das Próximas Manutenções", expanded=True):
+                events_by_date: dict[str, list[dict]] = {}
+                for ev in calendar_events:
+                    events_by_date.setdefault(ev["scheduled_date"], []).append(ev)
+
+                for date_str in sorted(events_by_date.keys())[:10]:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                    formatted_date = date_obj.strftime("%A, %d %B %Y")
+                    st.markdown(f"**{formatted_date}**")
+                    for ev in events_by_date[date_str]:
+                        machine_nm = ev.get("machine_name", "Máquina Desconhecida")
+                        comp_info = f" - {ev.get('company_name', '')}" if is_admin() and ev.get("company_name") else ""
+                        st.markdown(f"* {ev['type']} para **{machine_nm}**{comp_info}")
+                    st.markdown("---")
+        else:
+            st.info("Não existem eventos de manutenção agendados para os próximos 30 dias.")
+
+    # ----------------------------------------------------------------------
+    # TAB 2 – MAINTENANCE STATUS ------------------------------------------
+    # ----------------------------------------------------------------------
+    with tab_status:
+        st.subheader("Estado da Manutenção")
         
         # Key Performance Indicators
         maintenance_kpis = st.columns(3)
@@ -568,7 +539,7 @@ def show_dashboard():
             else:
                 st.info("No upcoming maintenances in the next 7 days.")
                 
-    with tab3:
+    with tab_analysis:
         # Fleet Analysis Tab
         st.subheader("Fleet Analysis")
         
