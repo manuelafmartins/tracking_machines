@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import calendar
 from frontend.utils.api import get_api_data
@@ -78,8 +77,7 @@ def show_dashboard():
     # TAB 1 – OVERVIEW ------------------------------------------------------
     # ----------------------------------------------------------------------
     with tab_overview:
-        st.subheader("Visão Geral da Frota")
-
+        
         # METRIC CARDS ------------------------------------------------------
         card_col1, card_col2, card_col3, card_col4 = st.columns(4)
 
@@ -285,7 +283,6 @@ def show_dashboard():
     # TAB 2 – MAINTENANCE STATUS ------------------------------------------
     # ----------------------------------------------------------------------
     with tab_status:
-        st.subheader("Estado da Manutenção")
         
         # Key Performance Indicators
         maintenance_kpis = st.columns(3)
@@ -540,8 +537,6 @@ def show_dashboard():
                 st.info("Não há manutenções agendadas para os próximos 7 dias.")
                 
     with tab_analysis:
-        # Fleet Analysis Tab
-        st.subheader("Análise da Frota")
         
         # Health Score calculation
         if machines and maintenances:
