@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sqlalchemy import and_
+from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from . import models, schemas

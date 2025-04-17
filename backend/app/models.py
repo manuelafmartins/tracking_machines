@@ -1,7 +1,7 @@
 import enum
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum, Boolean, Float
 from sqlalchemy.orm import relationship
-
+from datetime import datetime
 from .database import Base
 
 class MachineTypeEnum(str, enum.Enum):
@@ -87,7 +87,7 @@ class Machine(Base):
         back_populates="machine",
         cascade="all, delete-orphan"
     )
-    
+
     invoice_items = relationship(
         "InvoiceItem",
         back_populates="machine"
