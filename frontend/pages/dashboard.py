@@ -432,14 +432,28 @@ def show_dashboard():
                 )
             )
             
-            # Add today line
-            fig.add_vline(
+            fig.add_shape(
+                type="line",
+                x0=today,
+                x1=today,
+                y0=0,
+                y1=1,
+                yref="paper",
+                line=dict(
+                    color="gray",
+                    width=2,
+                    dash="dash"
+                )
+            )
+
+            # Add the "Hoje" annotation separately
+            fig.add_annotation(
                 x=today,
-                line_width=2,
-                line_dash="dash",
-                line_color="gray",
-                annotation_text="Hoje",
-                annotation_position="top right"
+                y=1,
+                yref="paper",
+                text="Hoje",
+                showarrow=False,
+                xanchor="right"
             )
             
             st.plotly_chart(fig, use_container_width=True)
