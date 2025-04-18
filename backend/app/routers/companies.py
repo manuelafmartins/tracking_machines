@@ -2,8 +2,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import List
-from dotenv import load_dotenv
-load_dotenv()
+
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 
@@ -14,7 +13,7 @@ from ..dependencies import get_current_user, get_admin_user, get_company_access
 router = APIRouter(prefix="/companies", tags=["companies"])
 
 # Directory for company logos
-LOGO_DIR = Path(os.getenv("LOGO_DIR"))
+LOGO_DIR = Path("frontend/images/company_logos")
 os.makedirs(LOGO_DIR, exist_ok=True)
 
 

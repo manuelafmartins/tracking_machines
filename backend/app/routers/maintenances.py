@@ -8,13 +8,11 @@ from .. import database, crud, schemas, models
 from ..dependencies import (
     get_current_user,
     check_maintenance_access,
-    check_machine_access,
-    get_company_access
+    check_machine_access
 )
 from ..notifications import notify_new_maintenance_scheduled, notify_maintenance_completed
 from ..crud import get_machine_by_id, get_company_by_id
 
-# Configure router
 router = APIRouter(prefix="/maintenances", tags=["maintenances"])
 
 
@@ -26,18 +24,7 @@ def list_maintenances(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Lists all maintenances based on user role.
-    
-    Admins see all maintenances; fleet managers see only their own company's.
-    
-    Args:
-        skip: Number of records to skip for pagination
-        limit: Maximum number of records to return
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        List of maintenance records the user has access to
+    Lists all maintenances. Admin sees all; fleet managers see only their own company's.
     """
     if current_user.role == models.UserRoleEnum.admin:
         return crud.get_maintenances(db, skip=skip, limit=limit)
@@ -53,37 +40,18 @@ def create_maintenance(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Creates a new maintenance record.
-    
-    Admin can create for any machine; fleet managers only for their own company's machines.
-    Sends a notification about the new maintenance scheduling.
-    
-    Args:
-        maintenance: Maintenance data to create
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Created maintenance record
-        
-    Raises:
-        HTTPException: If user lacks access to the specified machine
+    Creates a new maintenance. Admin can create for any machine; fleet managers only for their own company's machines.
     """
-    # Verify access to the machine
     check_machine_access(maintenance.machine_id, current_user, db)
-    
-    # Create the maintenance record
     new_maintenance = crud.create_maintenance(db, maintenance)
 
-    # Prepare notification data
     machine = get_machine_by_id(db, maintenance.machine_id)
     if machine:
         machine_name = machine.name
         company_id = machine.company_id
         company = get_company_by_id(db, company_id)
-        company_name = company.name if company else "Unknown"
+        company_name = company.name if company else "Desconhecida"
 
-        # Attempt to send notification
         try:
             notify_new_maintenance_scheduled(
                 db,
@@ -106,20 +74,7 @@ def get_maintenance(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Retrieves maintenance details.
-    
-    Validates user access before returning maintenance data.
-    
-    Args:
-        maintenance_id: ID of maintenance to retrieve
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Maintenance details
-        
-    Raises:
-        HTTPException: If maintenance not found or user lacks access permission
+    Retrieves maintenance details. Validates user access.
     """
     check_maintenance_access(maintenance_id, current_user, db)
     maintenance = crud.get_maintenance_by_id(db, maintenance_id)
@@ -136,21 +91,7 @@ def update_maintenance(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Updates maintenance details.
-    
-    Admin can update any maintenance; fleet managers only their own company's.
-    
-    Args:
-        maintenance_id: ID of maintenance to update
-        maintenance_data: Maintenance data to update
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Updated maintenance record
-        
-    Raises:
-        HTTPException: If maintenance not found or user lacks access permission
+    Updates maintenance details. Admin can update any; fleet managers only their own company's.
     """
     check_maintenance_access(maintenance_id, current_user, db)
     updated_maintenance = crud.update_maintenance(db, maintenance_id, maintenance_data)
@@ -166,40 +107,21 @@ def mark_maintenance_completed(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Marks a maintenance as completed.
-    
-    Admin can update any maintenance; fleet managers only their own company's.
-    Sends a notification when a maintenance is marked as completed.
-    
-    Args:
-        maintenance_id: ID of maintenance to mark as completed
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Updated maintenance record
-        
-    Raises:
-        HTTPException: If maintenance not found or user lacks access permission
+    Marks a maintenance as completed. Admin can update any; fleet managers only their own company's.
     """
-    # Verify access to the maintenance
     check_maintenance_access(maintenance_id, current_user, db)
-    
-    # Get maintenance data before update for notification
     maintenance_before = crud.get_maintenance_by_id(db, maintenance_id)
     if not maintenance_before:
         raise HTTPException(status_code=404, detail="Maintenance not found")
 
-    # Mark as completed
     maintenance = crud.update_maintenance_status(db, maintenance_id, True)
 
-    # Send notification
     if maintenance and maintenance_before.machine:
         machine = maintenance_before.machine
         machine_name = machine.name
         company_id = machine.company_id
         company = get_company_by_id(db, company_id)
-        company_name = company.name if company else "Unknown"
+        company_name = company.name if company else "Desconhecida"
 
         try:
             notify_maintenance_completed(
@@ -222,20 +144,7 @@ def delete_maintenance(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Deletes a maintenance record.
-    
-    Admin can delete any maintenance; fleet managers only their own company's.
-    
-    Args:
-        maintenance_id: ID of maintenance to delete
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Success message
-        
-    Raises:
-        HTTPException: If maintenance not found or user lacks access permission
+    Deletes a maintenance. Admin can delete any; fleet managers only their own company's.
     """
     check_maintenance_access(maintenance_id, current_user, db)
     result = crud.delete_maintenance(db, maintenance_id)
@@ -253,19 +162,7 @@ def get_machine_maintenances(
 ):
     """
     Lists maintenances for a specific machine.
-    
-    Validates user access to the machine, then retrieves its maintenance records.
-    
-    Args:
-        machine_id: ID of machine to list maintenances for
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        List of maintenance records for the specified machine
-        
-    Raises:
-        HTTPException: If user lacks access permission to the machine
+    Validates user access, then retrieves the data.
     """
     check_machine_access(machine_id, current_user, db)
     return crud.get_machine_maintenances(db, machine_id)
@@ -278,20 +175,8 @@ def get_company_maintenances(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Lists maintenances for a specific company.
-    
-    Validates access to the company first.
-    
-    Args:
-        company_id: ID of company to list maintenances for
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        List of maintenance records for the specified company
-        
-    Raises:
-        HTTPException: If user lacks access permission to the company
+    Lists maintenances for a specific company. Validates access first.
     """
+    from ..dependencies import get_company_access
     get_company_access(company_id, current_user)
     return crud.get_company_maintenances(db, company_id)
