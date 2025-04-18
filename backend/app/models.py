@@ -45,7 +45,7 @@ class Company(Base):
     address = Column(String, nullable=True)
     logo_path = Column(String, nullable=True)
     
-    # Novos campos para faturação
+    # Campos para faturação
     tax_id = Column(String, nullable=True)   
     postal_code = Column(String, nullable=True)
     city = Column(String, nullable=True)

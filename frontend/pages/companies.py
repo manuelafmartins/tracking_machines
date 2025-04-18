@@ -411,16 +411,34 @@ def show_companies():
                         "payment_method": payment_method,
                         "iban": iban
                     }
+
+                    # Usar a função post_api_data em vez de requests diretamente
+                    result = post_api_data("companies", company_data)
+                    if result:
+                        # Obter o ID da nova empresa - precisamos buscar pelo nome
+                        companies = get_api_data("companies")
+                        new_company = next((c for c in companies if c["name"] == company_name), None)
+                        
+                        if new_company:
+                            company_id = new_company["id"]
+                            
+                            # Se um logo foi enviado, salvar e atualizar caminho
+                            if company_logo:
+                                logo_relative_path = save_company_logo(company_id, company_logo)
+                                
+                                if logo_relative_path:
+                                    # Atualizar o caminho do logo no banco de dados
+                                    update_data = {"logo_path": logo_relative_path}
+                                    put_api_data(f"companies/{company_id}", update_data)
+                            
+                            st.success(f"Empresa '{company_name}' adicionada com sucesso!")
+                            # Mudar para a aba de listagem depois de adicionar
+                            st.rerun()
+                    else:
+                        st.error(f"Erro ao criar empresa.")
                     
-                    # Criar empresa
-                    new_company_response = requests.post(
-                        f"{API_URL}/companies", 
-                        headers={"Authorization": f"Bearer {st.session_state['token']}"},
-                        json=company_data
-                    )
-                    
-                    if new_company_response.status_code in [200, 201]:
-                        new_company = new_company_response.json()
+                    if result.status_code in [200, 201]:
+                        new_company = result.json()
                         company_id = new_company["id"]
                         
                         # Se um logo foi enviado, salvar e atualizar caminho
@@ -436,7 +454,7 @@ def show_companies():
                         # Mudar para a aba de listagem depois de adicionar
                         st.rerun()
                     else:
-                        st.error(f"Erro ao criar empresa: {new_company_response.text}")
+                        st.error(f"Erro ao criar empresa: {result.text}")
         
 
 def set_edit_state(company_id, company_data):

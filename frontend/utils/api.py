@@ -27,7 +27,7 @@ def get_api_data(endpoint: str):
         st.error(f"Communication error with the API: {str(e)}")
         return None
 
-def post_api_data(endpoint: str, data: dict) -> bool:
+def post_api_data(endpoint: str, data: dict):
     """Generic function to post JSON data to the API using the stored auth token."""
     if "token" not in st.session_state:
         return False
@@ -36,6 +36,9 @@ def post_api_data(endpoint: str, data: dict) -> bool:
     try:
         response = requests.post(f"{API_URL}/{endpoint}", headers=headers, json=data)
         if response.status_code in [200, 201]:
+            # Se o endpoint for companies, retorne os dados da resposta
+            if endpoint == "companies":
+                return response.json()
             return True
         else:
             st.error(f"Failed to send data to '{endpoint}'. Status code: {response.status_code}")
@@ -54,16 +57,10 @@ def put_api_data(endpoint: str, data: dict) -> bool:
     
     headers = {"Authorization": f"Bearer {st.session_state['token']}"}
     try:
-        # Debug: mostrando a URL e os dados que estão sendo enviados
+        # Remove os prints de debug
         full_url = f"{API_URL}/{endpoint}"
-        st.write(f"Enviando para: {full_url}")
-        st.write("Dados enviados:", data)
         
         response = requests.put(full_url, headers=headers, json=data)
-        
-        # Debug: mostrando a resposta completa
-        st.write(f"Status code: {response.status_code}")
-        st.write(f"Resposta: {response.text}")
         
         if response.status_code in [200, 201, 204]:
             return True

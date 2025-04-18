@@ -37,7 +37,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_token(payload: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT token with the provided `payload`, expiring after `expires_delta`."""
-    to_encode = payload.copy()
+    # Verificar se payload é um dicionário
+    if isinstance(payload, str):
+        # Se for uma string, converter para um dicionário
+        to_encode = {"sub": payload}
+    else:
+        # Se já for um dicionário, fazer uma cópia
+        to_encode = payload.copy()
+    
     expire_time = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire_time})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

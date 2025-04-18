@@ -17,8 +17,10 @@ from ..dependencies import get_admin_user, get_current_user
 from ..notifications import notify_new_user_created
 from ..crud import get_company_by_id
 
+# Configure router
 router = APIRouter(tags=["authentication"], prefix="/auth")
 
+# OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
@@ -27,6 +29,20 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(database.get_db)
 ):
+    """
+    Authenticate a user and return an access token.
+    
+    Args:
+        form_data: OAuth2 form with username and password
+        db: Database session
+        
+    Returns:
+        Token information including access token and user details
+        
+    Raises:
+        HTTPException: If credentials are invalid or user is inactive
+    """
+    # Verify user credentials
     user = crud.get_user_by_username(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -34,14 +50,20 @@ def login(
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Check if user is active
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
+    
+    # Generate token with appropriate expiration
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     token_data = create_user_token(user)
     access_token = create_token(token_data, expires_delta=access_token_expires)
+    
+    # Return token with user information
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -58,6 +80,12 @@ def get_current_user_info(
 ):
     """
     Returns information about the currently logged-in user.
+    
+    Args:
+        current_user: User extracted from token
+        
+    Returns:
+        User information
     """
     return current_user
 
@@ -71,6 +99,15 @@ def get_users(
 ):
     """
     Retrieves all users (admin only).
+    
+    Args:
+        skip: Number of users to skip for pagination
+        limit: Maximum number of users to return
+        db: Database session
+        current_user: Current user (must be admin)
+        
+    Returns:
+        List of users
     """
     return crud.get_users(db, skip=skip, limit=limit)
 
@@ -83,7 +120,19 @@ def create_new_user(
 ):
     """
     Creates a new user (admin only).
+    
+    Args:
+        user: User data to create
+        db: Database session
+        current_user: Current user (must be admin)
+        
+    Returns:
+        Created user
+        
+    Raises:
+        HTTPException: If username already exists
     """
+    # Check if username already exists
     db_user = crud.get_user_by_username(db, username=user.username)
     if db_user:
         raise HTTPException(
@@ -91,6 +140,7 @@ def create_new_user(
             detail="Username already registered"
         )
 
+    # Create new user
     new_user = crud.create_user(db=db, user=user, role=user.role)
 
     # Include company name if the new user is a fleet manager
@@ -101,7 +151,7 @@ def create_new_user(
 
     # Send notification (ignore any failures)
     try:
-        role_display = "Administrador" if user.role == models.UserRoleEnum.admin else "Gestor de Frota"
+        role_display = "Administrator" if user.role == models.UserRoleEnum.admin else "Fleet Manager"
         notify_new_user_created(
             db,
             username=user.username,
@@ -124,19 +174,34 @@ def update_user(
     """
     Updates user information. 
     Only admins can update other users or change roles.
+    
+    Args:
+        user_id: ID of user to update
+        user_data: User data to update
+        db: Database session
+        current_user: Current user
+        
+    Returns:
+        Updated user
+        
+    Raises:
+        HTTPException: If user not found or insufficient permissions
     """
+    # Check permissions
     if current_user.id != user_id and current_user.role != models.UserRoleEnum.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to update other users"
         )
 
+    # Only admins can change roles
     if user_data.role is not None and current_user.role != models.UserRoleEnum.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to change roles"
         )
 
+    # Update user
     updated_user = crud.update_user(db, user_id, user_data)
     if not updated_user:
         raise HTTPException(
@@ -154,13 +219,26 @@ def delete_user(
 ):
     """
     Deletes a user (admin only).
+    
+    Args:
+        user_id: ID of user to delete
+        db: Database session
+        current_user: Current user (must be admin)
+        
+    Returns:
+        Success message
+        
+    Raises:
+        HTTPException: If user not found or trying to delete own account
     """
+    # Prevent self-deletion
     if current_user.id == user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot delete your own account"
         )
 
+    # Delete user
     result = crud.delete_user(db, user_id)
     if not result:
         raise HTTPException(

@@ -104,11 +104,35 @@ def get_company_by_id(db: Session, company_id: int) -> Optional[models.Company]:
 
 
 def create_company(db: Session, company: schemas.CompanyCreate) -> models.Company:
-    db_company = models.Company(**company.model_dump())
+    """
+    Cria uma nova empresa com todos os campos.
+    Versão corrigida que garante que todos os campos sejam salvos.
+    """
+    # Converter o objeto Pydantic para dicionário mantendo os valores vazios
+    company_dict = company.model_dump(exclude_unset=False)
+    
+    # Para debugging - imprimir todos os campos
+    print("Creating company with fields:")
+    for k, v in company_dict.items():
+        print(f"  {k}: {v}")
+    
+    # Criar objeto da empresa com todos os campos do dicionário
+    db_company = models.Company(**company_dict)
+    
+    # Adicionar à sessão do banco de dados
     db.add(db_company)
-    _commit_refresh(db, db_company)
-    return db_company
-
+    
+    try:
+        # Confirmar as alterações
+        db.commit()
+        # Atualizar o objeto com os dados do banco de dados
+        db.refresh(db_company)
+        return db_company
+    except Exception as e:
+        # Em caso de erro, reverter as alterações
+        db.rollback()
+        print(f"Error creating company: {str(e)}")
+        raise
 
 def update_company(
     db: Session,

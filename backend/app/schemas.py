@@ -73,17 +73,31 @@ class CompanyBase(BaseModel):
     tax_id: Optional[str] = None
     postal_code: Optional[str] = None
     city: Optional[str] = None
-    country: Optional[str] = "Portugal"
+    country: Optional[str] = None
     billing_email: Optional[str] = None
     phone: Optional[str] = None
     payment_method: Optional[str] = None
     iban: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 
 class CompanyCreate(CompanyBase):
     """
     Schema used when creating a new company.
     """
     pass
+
+
+class Company(CompanyBase):
+    """
+    Returns company data with its ID.
+    """
+    id: int
+
+    class Config:
+        from_attributes = True
 
 class CompanyUpdate(BaseModel):
     """
@@ -100,16 +114,6 @@ class CompanyUpdate(BaseModel):
     phone: Optional[str] = None
     payment_method: Optional[str] = None
     iban: Optional[str] = None
-
-
-class Company(CompanyBase):
-    """
-    Returns company data with its ID.
-    """
-    id: int
-
-    class Config:
-        from_attributes = True
 
 
 class CompanyDetail(Company):
