@@ -134,6 +134,19 @@ class MachineBase(BaseModel):
     name: str
     type: MachineTypeEnum
     company_id: int
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    serial_number: Optional[str] = None
+    purchase_date: Optional[date] = None
+    
+    # Campos específicos para camiões
+    license_plate: Optional[str] = None
+    vehicle_identification_number: Optional[str] = None  # VIN
+    
+    # Campos específicos para máquinas fixas
+    location: Optional[str] = None
+    installation_date: Optional[date] = None
 
 
 class MachineCreate(MachineBase):
@@ -150,6 +163,15 @@ class MachineUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[MachineTypeEnum] = None
     company_id: Optional[int] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    year: Optional[int] = None
+    serial_number: Optional[str] = None
+    purchase_date: Optional[date] = None
+    license_plate: Optional[str] = None
+    vehicle_identification_number: Optional[str] = None
+    location: Optional[str] = None
+    installation_date: Optional[date] = None
 
 
 class Machine(MachineBase):

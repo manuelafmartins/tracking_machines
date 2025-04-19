@@ -72,6 +72,8 @@ class Company(Base):
     )
 
 
+# Adicionamos estes campos ao modelo Machine existente em models.py
+
 class Machine(Base):
     """Represents a machine associated with a company."""
     __tablename__ = "machines"
@@ -80,6 +82,21 @@ class Machine(Base):
     name = Column(String, nullable=False)
     type = Column(Enum(MachineTypeEnum), nullable=False)
     company_id = Column(Integer, ForeignKey("companies.id"))
+    
+    # Campos comuns para ambos os tipos
+    brand = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    year = Column(Integer, nullable=True)
+    serial_number = Column(String, nullable=True)
+    purchase_date = Column(Date, nullable=True)
+    
+    # Campos específicos para camiões
+    license_plate = Column(String, nullable=True)
+    vehicle_identification_number = Column(String, nullable=True)  # VIN
+    
+    # Campos específicos para máquinas fixas
+    location = Column(String, nullable=True)
+    installation_date = Column(Date, nullable=True)
 
     company = relationship("Company", back_populates="machines")
     maintenances = relationship(
@@ -92,7 +109,6 @@ class Machine(Base):
         "InvoiceItem",
         back_populates="machine"
     )
-
     
 
 

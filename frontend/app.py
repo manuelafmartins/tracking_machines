@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import annotations
-
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -20,34 +18,46 @@ from pages import (
     settings,
 )
 
-# ----------------------------------------------------------------------------
-# Configuração e variáveis de ambiente
-# ----------------------------------------------------------------------------
+# Load environment variables
 load_dotenv()
 LOGO_PATH: str | None = os.getenv("LOGO_PATH")
-DEFAULT_LOGO_PATH: str | None = os.getenv("DEFAULT_LOGO_PATH")
+DEFAULT_LOGO_PATH: str | None = os.getenv("DEFAULT_LOGO_PATH") or "frontend/images/logo.png"
 
-# Cores da aplicação - paleta principal
+# Color palette
 COLORS = {
-    "primary": "#1abc9c",      # Verde-turquesa (principal)
-    "primary_dark": "#16a085", # Verde-turquesa escuro
-    "secondary": "#2c3e50",    # Azul escuro
-    "accent": "#3498db",       # Azul claro
-    "warning": "#f39c12",      # Amarelo
-    "danger": "#e74c3c",       # Vermelho
-    "success": "#2ecc71",      # Verde
-    "light": "#ecf0f1",        # Cinza claro
-    "dark": "#2c3e50",         # Azul escuro
-    "text": "#2c3e50",         # Cor do texto principal
-    "muted": "#7f8c8d",        # Texto secundário
+    "primary": "#1abc9c",
+    "primary_dark": "#16a085",
+    "secondary": "#2c3e50",
+    "accent": "#3498db",
+    "warning": "#f39c12",
+    "danger": "#e74c3c",
+    "success": "#2ecc71",
+    "light": "#ecf0f1",
+    "dark": "#2c3e50",
+    "text": "#2c3e50",
+    "muted": "#7f8c8d",
 }
 
-# Configuração da página
+# Icons map
+ICONS = {
+    "dashboard": "dashboard",
+    "companies": "domain",
+    "machines": "precision_manufacturing",
+    "maintenances": "build",
+    "billing": "receipt_long",
+    "users": "group",
+    "settings": "settings",
+    "notifications": "notifications",
+    "support": "support_agent",
+    "logout": "logout",
+}
+
+# Configure page
 st.set_page_config(
     page_title="FF ManutenControl",
     page_icon="🛠️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # ----------------------------------------------------------------------------
@@ -175,6 +185,24 @@ def apply_global_styles():
             }}
         }}
 
+        /* ----------  ÍCONES TOTALMENTE BRANCOS  ---------- */
+
+        /* 1) ícones base‑web (SVG) usados por `st.button(icon=...)`   */
+        div.stButton > button span[data-baseweb="icon"] svg,
+        div.stButton > button span[data-baseweb="icon"] svg path {{
+            color: #ffffff !important;  
+            fill:  #ffffff !important;
+            stroke:#ffffff !important;
+        }}
+
+        /* 2) emojis/PNG que o Streamlit converte em <img class="emoji"> */
+        div.stButton > button img.emoji {{
+            filter: brightness(0) invert(1) !important;  /* deixa o bitmap branco */
+            width: 1.1em;
+            height: 1.1em;
+            margin-right: 6px;
+            vertical-align: -2px;
+        }}
         
         /* --------------------------------------------------------
         1) Esconde por completo a navegação automática do Streamlit
@@ -197,6 +225,63 @@ def apply_global_styles():
         unsafe_allow_html=True,
     )
 
+
+def load_global_styles():
+    """Inject global CSS styles (including white icons)."""
+    st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+    html, body, [class*='css'] {{
+        font-family: 'Roboto', sans-serif;
+        color: {COLORS['text']};
+    }}
+    h1, h2, h3, h4, h5, h6 {{
+        font-weight: 500;
+        color: {COLORS['secondary']};
+    }}
+
+    /* Sidebar background & hide default nav */
+    section[data-testid='stSidebar'] {{
+        background-color: {COLORS['light']};
+        border-right: 1px solid #e0e0e0;
+    }}
+    [data-testid='stSidebarNav'] {{ display: none; }}
+
+    /* Button styling */
+    div.stButton > button {{
+        background-color: {COLORS['secondary']} !important;
+        color: white !important;
+        font-weight: 500;
+        border-radius: 6px;
+        width: 100%;
+    }}
+    div.stButton > button[kind='primary'] {{
+        background-color: {COLORS['primary']} !important;
+    }}
+    div.stButton > button:hover {{
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }}
+
+    /* Force icons to white */
+    div.stButton > button span[data-baseweb="icon"] svg,
+    div.stButton > button span[data-baseweb="icon"] svg path {{
+        color: #ffffff !important;
+        fill:  #ffffff !important;
+        stroke:#ffffff !important;
+    }}
+
+    /* Metric cards */
+    .card {{
+        background-color: white;
+        border-radius: 10px;
+        padding: 1rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        border-left: 3px solid {COLORS['primary']};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
 # Controle de sessão
@@ -236,12 +321,17 @@ def metric_card(title, value, delta=None, delta_suffix="%", icon=None, color=COL
             <span>{abs(delta)}{delta_suffix}</span>
         </div>
         """
+    border_color=COLORS["primary"]
+    icon_color="#ffffff"
     
-    icon_html = f'<div style="font-size:24px; margin-bottom:10px; color:{color}">{icon}</div>' if icon else ''
-    
+    icon_html = (
+        f'<div style="font-size:24px; margin-bottom:10px; color:{icon_color}">{icon}</div>'
+        if icon else ""
+    )
     return f"""
-    <div style="background-color:white; border-radius:10px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.1); 
-         border-left:4px solid {color}; height:100%; display:flex; flex-direction:column;">
+    <div style="background-color:white; border-radius:10px; padding:20px;
+         box-shadow:0 2px 10px rgba(0,0,0,0.1);
+         border-left:4px solid {border_color};
         {icon_html}
         <div style="font-size:14px; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px;">{title}</div>
         <div style="font-size:28px; font-weight:500; margin:10px 0; color:{COLORS['secondary']}">{value}</div>
@@ -311,24 +401,25 @@ def login_screen() -> None:
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        st.markdown("<h1 style='text-align:center; margin-top:3rem;'>FF ManutenControl</h1>", unsafe_allow_html=True)
+        #st.markdown("<h1 style='text-align:center; margin-top:3rem;'>FF ManutenControl</h1>", unsafe_allow_html=True)
 
         if (logo64 := get_image_base64(LOGO_PATH)):
+            # simplesmente renderiza a imagem sem bordas nem oval
             st.markdown(
                 f"""
                 <div style='display:flex; justify-content:center; margin:1.5rem 0;'>
-                    <img src='data:image/png;base64,{logo64}' width='150' 
-                         style='border-radius:50%; border:3px solid {COLORS["primary"]}; 
-                         box-shadow:0 4px 15px rgba(0,0,0,.1);'>
+                    <img src='data:image/png;base64,{logo64}' width='450' 
+                        style='border-radius:0; border:none; box-shadow:none;'>
                 </div>""",
                 unsafe_allow_html=True,
             )
+
 
         st.markdown(
             f"""
             <div style='text-align:center; margin-bottom:2rem;'>
                 <h4 style='color:{COLORS["muted"]}; font-weight:400;'>
-                    Sistema Profissional de Controlo de Manutenção
+                    Sistema de Controlo de Manutenção
                 </h4>
                 <p style='color:{COLORS["muted"]}; font-size:0.9rem;'>
                     © 2025 Filipe Ferreira
@@ -363,16 +454,25 @@ def login_screen() -> None:
 
         st.markdown("</div>", unsafe_allow_html=True)
         
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
         # Versão e informações de rodapé
         st.markdown(
             f"""
             <div style='text-align:center; margin-top:2rem; opacity:0.7;'>
-                <small>Versão 1.0.0 · Suporte técnico: suporte@ffmanutencontrol.com</small>
+                <small>Versão 1.0.0 · © 2025 Filipe Ferreira</small>
             </div>
             """,
             unsafe_allow_html=True
         )
-        
+                
     st.stop()
 
 
@@ -445,8 +545,9 @@ def sidebar_user_info() -> None:
 
     # Logo aplicação
     st.sidebar.image(company_logo_path, use_container_width =True)
-    st.sidebar.markdown("<h1 style='text-align: center; margin-bottom: 20px;'>FF ManutenControl</h1>", unsafe_allow_html=True)
-    
+    #st.sidebar.markdown("<h1 style='text-align: center; margin-bottom: 20px;'>FF ManutenControl</h1>", unsafe_allow_html=True)#
+    st.sidebar.write("")
+
     # Informações de perfil
     full_name = st.session_state.get("full_name", username)
     role_display = "Administrador" if role == "admin" else "Gestor de Frota"
@@ -460,8 +561,6 @@ def sidebar_user_info() -> None:
         unsafe_allow_html=True
     )
     
-   
-   
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
     
     # Data e hora atuais
@@ -475,7 +574,8 @@ def sidebar_user_info() -> None:
         """,
         unsafe_allow_html=True
     )
-    
+    st.sidebar.write("")
+    st.sidebar.write("")
     # Links rápidos
     st.sidebar.markdown(
         """
@@ -485,16 +585,34 @@ def sidebar_user_info() -> None:
         """,
         unsafe_allow_html=True
     )
+
+    if "show_notifications" not in st.session_state:
+        st.session_state.show_notifications = False
+    if "show_support" not in st.session_state:
+        st.session_state.show_support = False
     
     # Botões de ação rápida na sidebar
-    if st.sidebar.button("🔔 Notificações", key="notifications_btn"):
+    if st.sidebar.button("Notificações", key="notifications_btn", icon=f":material/{ICONS['notifications']}:"):
         # Futuramente: Exibir notificações em um modal
+        st.session_state.show_notifications = not st.session_state.show_notifications
+    
+    if st.session_state.show_notifications:
         st.sidebar.info("Sem notificações novas")
     
-    if st.sidebar.button("💬 Suporte", key="support_btn"):
-        # Futuramente: Abrir chat de suporte
-        st.sidebar.info("E-mail: suporte@ffmanutencontrol.com")
-    
+    if st.sidebar.button(
+        "Suporte",
+        key="support_btn",
+        icon=f":material/{ICONS['support']}:",
+    ):
+        st.session_state.show_support = not st.session_state.show_support
+
+    if st.session_state.show_support:
+        st.sidebar.info("""
+        ### Para suporte, contacte:
+        **Nome:** Filipe Ferreira  
+        **Telefone:** 919122277  
+        """)
+        
     # Versão do sistema no rodapé da sidebar
     st.sidebar.markdown(
         """
@@ -504,7 +622,20 @@ def sidebar_user_info() -> None:
         """,
         unsafe_allow_html=True
     )
-    if st.sidebar.button("🚪  Sair", key="logout_sidebar_btn"):
+
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+
+
+    if st.sidebar.button(
+        "Sair",
+        key="logout_btn",
+        icon=f":material/{ICONS['logout']}:",
+    ):
         st.session_state.clear()
         st.rerun()
 

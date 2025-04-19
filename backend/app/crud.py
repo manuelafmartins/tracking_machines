@@ -175,6 +175,7 @@ def get_machines_by_company(db: Session, company_id: int) -> List[models.Machine
 
 
 def create_machine(db: Session, machine: schemas.MachineCreate) -> models.Machine:
+    """Cria uma nova máquina com todos os campos expandidos."""
     db_machine = models.Machine(**machine.model_dump())
     db.add(db_machine)
     _commit_refresh(db, db_machine)
@@ -186,11 +187,14 @@ def update_machine(
     machine_id: int,
     machine_data: schemas.MachineUpdate,
 ) -> Optional[models.Machine]:
+    """Atualiza uma máquina existente, suportando todos os novos campos."""
     db_machine = get_machine_by_id(db, machine_id)
     if not db_machine:
         return None
 
-    for key, val in machine_data.model_dump(exclude_unset=True).items():
+    update_data = machine_data.model_dump(exclude_unset=True)
+    
+    for key, val in update_data.items():
         setattr(db_machine, key, val)
 
     _commit_refresh(db, db_machine)
