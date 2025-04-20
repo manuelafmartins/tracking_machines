@@ -94,6 +94,8 @@ STATUS_CONFIGS: Dict[str, Dict[str, str]] = {
 }
 
 # Configure page
+LOGO_ICON_PATH = os.path.join("images", "new_logo.png")
+
 st.set_page_config(
     page_title="FF ManutenControl",
     page_icon=DEFAULT_LOGO_PATH,
@@ -101,18 +103,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ------------------------------------------------------------------------------
-# Global UI Styles
-# ------------------------------------------------------------------------------
-def apply_global_styles() -> None:
-    """Define and apply global styles for the entire application."""
+# ----------------------------------------------------------------------------
+# Definição de Estilos Globais
+# ----------------------------------------------------------------------------
+def apply_global_styles():
+    """Define e aplica estilos globais para toda a aplicação."""
     
+    # CSS para estilos globais da aplicação
     st.markdown(
         f"""
         <style>
-        /* General styles and fonts */
+        /* Estilos gerais e fonte */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-        @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
         
         html, body, [class*="css"] {{
             font-family: 'Roboto', sans-serif;
@@ -125,14 +127,14 @@ def apply_global_styles() -> None:
             color: {COLORS["secondary"]};
         }}
         
-        /* Main container */
+        /* Container principal */
         .main .block-container {{
             padding-top: 1rem;
             max-width: 1200px;
             margin: 0 auto;
         }}
         
-        /* Cards, Containers and UI Elements */
+        /* Cards, Containers e Elementos de UI */
         .card {{
             background-color: white;
             border-radius: 10px;
@@ -148,13 +150,7 @@ def apply_global_styles() -> None:
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }}
         
-        /* Material Icons */
-        .material-icons {{
-            vertical-align: middle;
-            font-size: 20px;
-        }}
-        
-        /* Buttons and interactive elements */
+        /* Botões e elementos interativos */
         div.stButton > button {{
             background-color: {COLORS["secondary"]};
             color: white;
@@ -173,7 +169,7 @@ def apply_global_styles() -> None:
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }}
         
-        /* Primary button (selected) */
+        /* Botão primário (selecionado) */
         div.stButton > button[kind="primary"] {{
             background-color: {COLORS["primary"]};
             box-shadow: 0 2px 5px rgba(26, 188, 156, 0.3);
@@ -183,7 +179,7 @@ def apply_global_styles() -> None:
             background-color: {COLORS["primary_dark"]};
         }}
         
-        /* Menu separator */
+        /* Separador de menu */
         hr {{
             margin: 15px 0;
             border: none;
@@ -191,7 +187,7 @@ def apply_global_styles() -> None:
             background-color: #ecf0f1;
         }}
         
-        /* Sidebar */
+        /* Barra lateral */
         section[data-testid="stSidebar"] {{
             background-color: {COLORS["light"]};
             border-right: 1px solid #e0e0e0;
@@ -202,12 +198,12 @@ def apply_global_styles() -> None:
             padding-bottom: 2rem;
         }}
         
-        /* Progress bars and indicators */
+        /* Barras de progresso e indicadores */
         .stProgress > div > div > div > div {{
             background-color: {COLORS["primary"]};
         }}
         
-        /* Navigation menu */
+        /* Menu de navegação */
         .navigation-container {{
             margin-bottom: 20px;
             padding: 10px 5px;
@@ -216,7 +212,7 @@ def apply_global_styles() -> None:
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }}
         
-        /* Current page indicator */
+        /* Indicador de página atual */
         .page-indicator {{
             height: 4px;
             background-color: {COLORS["primary"]};
@@ -224,7 +220,7 @@ def apply_global_styles() -> None:
             border-radius: 0 0 4px 4px;
         }}
         
-        /* Mobile responsiveness */
+        /* Responsividade para dispositivos móveis */
         @media (max-width: 768px) {{
             div.stButton > button {{
                 font-size: 0.8rem;
@@ -232,110 +228,153 @@ def apply_global_styles() -> None:
             }}
         }}
 
-        /* ---------- WHITE ICONS ---------- */
-        /* SVG icons used by st.button(icon=...) */
+        /* ----------  ÍCONES TOTALMENTE BRANCOS  ---------- */
+
+        /* 1) ícones base‑web (SVG) usados por `st.button(icon=...)`   */
         div.stButton > button span[data-baseweb="icon"] svg,
         div.stButton > button span[data-baseweb="icon"] svg path {{
             color: #ffffff !important;  
-            fill: #ffffff !important;
-            stroke: #ffffff !important;
+            fill:  #ffffff !important;
+            stroke:#ffffff !important;
         }}
 
-        /* Emoji/PNG that Streamlit converts to <img class="emoji"> */
+        /* 2) emojis/PNG que o Streamlit converte em <img class="emoji"> */
         div.stButton > button img.emoji {{
-            filter: brightness(0) invert(1) !important;
+            filter: brightness(0) invert(1) !important;  /* deixa o bitmap branco */
             width: 1.1em;
             height: 1.1em;
             margin-right: 6px;
             vertical-align: -2px;
         }}
         
-        /* Hide Streamlit's automatic navigation */
+        /* --------------------------------------------------------
+        1) Esconde por completo a navegação automática do Streamlit
+        ---------------------------------------------------------*/
         [data-testid="stSidebarNav"] {{
-            display: none;
+            display: none;            /* some todo o <ul> */
         }}
+
+        /* --------------------------------------------------------
+        2) ‑‑ ou, se preferir que a lista fique mas sem o marcador,
+                remova apenas o bullet e o recuo
+        ---------------------------------------------------------*/
+        /* section[data-testid="stSidebar"] ul {{
+            list-style-type: none;    /* tira o •               */
+            padding-left: 0;          /* remove o recuo padrão  */
+            margin-left: 0;
+        }} */
         </style>
         """,
         unsafe_allow_html=True,
     )
 
 
-# ------------------------------------------------------------------------------
-# Session state management
-# ------------------------------------------------------------------------------
-def initialize_session_state() -> None:
-    """Initialize session state variables if they don't exist."""
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    
-    if "current_page" not in st.session_state:
-        st.session_state.current_page = "Dashboard"
-    
-    if "theme" not in st.session_state:
-        st.session_state.theme = "light"  # Future support for dark theme
-        
-    if "show_notifications" not in st.session_state:
-        st.session_state.show_notifications = False
-        
-    if "show_support" not in st.session_state:
-        st.session_state.show_support = False
+def load_global_styles():
+    """Inject global CSS styles (including white icons)."""
+    st.markdown(f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+    html, body, [class*='css'] {{
+        font-family: 'Roboto', sans-serif;
+        color: {COLORS['text']};
+    }}
+    h1, h2, h3, h4, h5, h6 {{
+        font-weight: 500;
+        color: {COLORS['secondary']};
+    }}
+
+    /* Sidebar background & hide default nav */
+    section[data-testid='stSidebar'] {{
+        background-color: {COLORS['light']};
+        border-right: 1px solid #e0e0e0;
+    }}
+    [data-testid='stSidebarNav'] {{ display: none; }}
+
+    /* Button styling */
+    div.stButton > button {{
+        background-color: {COLORS['secondary']} !important;
+        color: white !important;
+        font-weight: 500;
+        border-radius: 6px;
+        width: 100%;
+    }}
+    div.stButton > button[kind='primary'] {{
+        background-color: {COLORS['primary']} !important;
+    }}
+    div.stButton > button:hover {{
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }}
+
+    /* Force icons to white */
+    div.stButton > button span[data-baseweb="icon"] svg,
+    div.stButton > button span[data-baseweb="icon"] svg path {{
+        color: #ffffff !important;
+        fill:  #ffffff !important;
+        stroke:#ffffff !important;
+    }}
+
+    /* Metric cards */
+    .card {{
+        background-color: white;
+        border-radius: 10px;
+        padding: 1rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        border-left: 3px solid {COLORS['primary']};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+# ----------------------------------------------------------------------------
+# Controle de sessão
+# ----------------------------------------------------------------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "Dashboard"
+if "theme" not in st.session_state:
+    st.session_state.theme = "light"  # Futuro suporte para tema escuro
 
 
-# ------------------------------------------------------------------------------
-# Reusable UI Components
-# ------------------------------------------------------------------------------
-def metric_card(
-    title: str, 
-    value: Union[str, int, float], 
-    delta: Optional[Union[int, float]] = None, 
-    delta_suffix: str = "%", 
-    icon: Optional[str] = None, 
-    color: str = COLORS["primary"]
-) -> str:
+# ----------------------------------------------------------------------------
+# Componentes de UI Reutilizáveis
+# ----------------------------------------------------------------------------
+def metric_card(title, value, delta=None, delta_suffix="%", icon=None, color=COLORS["primary"]):
     """
-    Create an enhanced metric card with trend and icon.
+    Cria um card de métrica avançado com tendência e ícone.
     
     Args:
-        title: Metric title
-        value: Main value to display
-        delta: Percentage change (positive or negative)
-        delta_suffix: Suffix for delta (%, pts, etc)
-        icon: Material Design icon for the metric
-        color: Card color (hex)
-    
-    Returns:
-        HTML string for the metric card
+        title: Título da métrica
+        value: Valor principal
+        delta: Mudança percentual (positiva ou negativa)
+        delta_suffix: Sufixo para o delta (%, pts, etc)
+        icon: Ícone Material para a métrica
+        color: Cor do card (hexadecimal)
     """
     delta_html = ""
     if delta is not None:
+        direction = "up" if delta >= 0 else "down"
         delta_color = COLORS["success"] if delta >= 0 else COLORS["danger"]
-        trend_icon = "trending_up" if delta >= 0 else "trending_down"
+        arrow = "&#9650;" if delta >= 0 else "&#9660;"
         
         delta_html = f"""
         <div style="color:{delta_color}; display:flex; align-items:center; margin-top:8px;">
-            <span class="material-icons" style="font-size:16px; margin-right:4px;">{trend_icon}</span>
+            <span style="margin-right:4px;">{arrow}</span>
             <span>{abs(delta)}{delta_suffix}</span>
         </div>
         """
+    border_color=COLORS["primary"]
+    icon_color="#ffffff"
     
-    # Icon HTML (if provided)
-    icon_html = ""
-    if icon:
-        if icon.startswith("material/"):
-            # For material design icons (new format)
-            clean_icon = icon.replace("material/", "")
-            icon_html = f'<div style="margin-bottom:10px;"><span class="material-icons" style="font-size:28px; color:{color};">{clean_icon}</span></div>'
-        elif icon in ICONS:
-            # For icons from our ICONS dictionary
-            icon_html = f'<div style="margin-bottom:10px;"><span class="material-icons" style="font-size:28px; color:{color};">{ICONS[icon]}</span></div>'
-        else:
-            # Fallback for emoji/text icons
-            icon_html = f'<div style="font-size:24px; margin-bottom:10px;">{icon}</div>'
-    
+    icon_html = (
+        f'<div style="font-size:24px; margin-bottom:10px; color:{icon_color}">{icon}</div>'
+        if icon else ""
+    )
     return f"""
     <div style="background-color:white; border-radius:10px; padding:20px;
          box-shadow:0 2px 10px rgba(0,0,0,0.1);
-         border-left:4px solid {color};">
+         border-left:4px solid {border_color};
         {icon_html}
         <div style="font-size:14px; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px;">{title}</div>
         <div style="font-size:28px; font-weight:500; margin:10px 0; color:{COLORS['secondary']}">{value}</div>
@@ -344,27 +383,33 @@ def metric_card(
     """
 
 
-def status_badge(status: str, size: str = "normal") -> str:
+def status_badge(status, size="normal"):
     """
-    Create a status badge with appropriate colors and icons.
+    Cria uma badge de status com cores apropriadas.
     
     Args:
-        status: Status string (e.g., "Concluído", "Pendente", etc.)
-        size: Badge size ("small", "normal", "large")
-    
-    Returns:
-        HTML string for the status badge
+        status: String do status (ex: "Concluído", "Pendente", etc)
+        size: Tamanho da badge ("small", "normal", "large")
     """
-    # Get color and icon from STATUS_CONFIGS or use defaults
-    config = STATUS_CONFIGS.get(status, {
-        "color": COLORS["accent"],
-        "icon": ICONS["info"]
-    })
+    # Mapear status para cores
+    status_colors = {
+        "Concluído": COLORS["success"],
+        "Concluída": COLORS["success"],
+        "Ativo": COLORS["success"],
+        "Ativa": COLORS["success"],
+        "Pendente": COLORS["warning"],
+        "Em Progresso": COLORS["accent"],
+        "Atrasado": COLORS["danger"],
+        "Atrasada": COLORS["danger"],
+        "Crítico": COLORS["danger"],
+        "Cancelado": COLORS["muted"],
+        # Adicionar mais mapeamentos conforme necessário
+    }
     
-    color = config["color"]
-    icon = config["icon"]
+    # Definir cor padrão caso o status não esteja mapeado
+    color = status_colors.get(status, COLORS["accent"])
     
-    # Set font size based on the size parameter
+    # Definir tamanho da fonte baseado no parâmetro
     font_size = {
         "small": "11px",
         "normal": "13px",
@@ -379,78 +424,30 @@ def status_badge(status: str, size: str = "normal") -> str:
         border-radius: 12px;
         font-size: {font_size};
         font-weight: 500;
-        display: inline-flex;
-        align-items: center;
+        display: inline-block;
         border: 1px solid {color}40;
     ">
-        <span class="material-icons" style="font-size: {font_size}; margin-right: 4px;">{icon}</span>
         {status}
     </span>
     """
 
 
-def notification_card(title: str, message: str, time: str, type_: str = "info") -> str:
-    """
-    Create a notification card with icon and timestamp.
-    
-    Args:
-        title: Notification title
-        message: Main notification message
-        time: Timestamp or relative time
-        type_: Notification type ("info", "warning", "success", "error")
-    
-    Returns:
-        HTML string for notification card
-    """
-    icon_map = {
-        "info": ICONS["info"],
-        "warning": ICONS["warning"],
-        "success": ICONS["success"],
-        "error": ICONS["error"]
-    }
-    
-    color_map = {
-        "info": COLORS["accent"],
-        "warning": COLORS["warning"],
-        "success": COLORS["success"],
-        "error": COLORS["danger"]
-    }
-    
-    icon = icon_map.get(type_, ICONS["info"])
-    color = color_map.get(type_, COLORS["accent"])
-    
-    return f"""
-    <div style="
-        border-left: 3px solid {color};
-        background-color: {color}10;
-        padding: 10px 15px;
-        margin-bottom: 10px;
-        border-radius: 4px;
-    ">
-        <div style="display: flex; align-items: center; margin-bottom: 5px;">
-            <span class="material-icons" style="color: {color}; margin-right: 8px;">{icon}</span>
-            <span style="font-weight: 500; color: {color};">{title}</span>
-        </div>
-        <div style="margin-left: 28px; margin-bottom: 5px;">{message}</div>
-        <div style="margin-left: 28px; font-size: 0.8rem; color: {COLORS['muted']};">
-            <span class="material-icons" style="font-size: 12px; vertical-align: middle;">schedule</span> {time}
-        </div>
-    </div>
-    """
+# ----------------------------------------------------------------------------
+# Páginas principais
+# ----------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-# Main UI Screens
-# ------------------------------------------------------------------------------
 def login_screen() -> None:
-    """Render the enhanced login screen."""
-    # Apply global styles
+    """Renderiza a tela de login com visual aprimorado."""
+    # Aplicar estilos globais
     apply_global_styles()
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Display logo if available
+        #st.markdown("<h1 style='text-align:center; margin-top:3rem;'>FF ManutenControl</h1>", unsafe_allow_html=True)
+
         if (logo64 := get_image_base64(LOGO_PATH)):
+            # simplesmente renderiza a imagem sem bordas nem oval
             st.markdown(
                 f"""
                 <div style='display:flex; justify-content:center; margin:1.5rem 0;'>
@@ -460,7 +457,7 @@ def login_screen() -> None:
                 unsafe_allow_html=True,
             )
 
-        # App tagline and copyright info
+
         st.markdown(
             f"""
             <div style='text-align:center; margin-bottom:2rem;'>
@@ -476,7 +473,6 @@ def login_screen() -> None:
             unsafe_allow_html=True,
         )
 
-        # Login form
         with st.form("login_form"):
             st.subheader("Entrar")
             username = st.text_input("Nome de utilizador")
@@ -501,15 +497,20 @@ def login_screen() -> None:
 
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # Add vertical spacing
-        for _ in range(9):
-            st.write("")
-            
-        # Version and footer information
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        # Versão e informações de rodapé
         st.markdown(
             f"""
             <div style='text-align:center; margin-top:2rem; opacity:0.7;'>
-                <small>Versão {APP_VERSION} · © 2025 Filipe Ferreira</small>
+                <small>Versão 1.0.0 · © 2025 Filipe Ferreira</small>
             </div>
             """,
             unsafe_allow_html=True
@@ -519,11 +520,11 @@ def login_screen() -> None:
 
 
 def sidebar_user_info() -> None:
-    """Populate the sidebar with user data and company logo."""
+    """Popula a barra lateral com dados do utilizador e logo da empresa, com design aprimorado."""
     role = st.session_state.get("role", "unknown")
     username = st.session_state.get("username", "unknown")
 
-    # Company logo (if user is a fleet manager)
+    # Logo da empresa (se gestor de frota)
     company_logo_path = DEFAULT_LOGO_PATH
     if role == "fleet_manager" and (company_id := st.session_state.get("company_id")):
         for ext in (".png", ".jpg", ".jpeg"):
@@ -532,7 +533,7 @@ def sidebar_user_info() -> None:
                 company_logo_path = path
                 break
                 
-    # Add CSS for sidebar components
+    # Adicionar CSS para sidebar
     st.sidebar.markdown(
         f"""
         <style>
@@ -561,6 +562,13 @@ def sidebar_user_info() -> None:
             font-size: 0.9rem;
             margin-bottom: 0.7rem;
         }}
+        .user-profile-company {{
+            font-size: 0.9rem;
+            background-color: {COLORS["primary"]}20;
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
+        }}
         .sidebar-section {{
             margin-bottom: 1.5rem;
         }}
@@ -577,11 +585,13 @@ def sidebar_user_info() -> None:
         unsafe_allow_html=True
     )
     
-    # Display app logo
-    st.sidebar.image(company_logo_path, use_container_width=True)
+
+    # Logo aplicação
+    st.sidebar.image(company_logo_path, use_container_width =True)
+    #st.sidebar.markdown("<h1 style='text-align: center; margin-bottom: 20px;'>FF ManutenControl</h1>", unsafe_allow_html=True)#
     st.sidebar.write("")
 
-    # Profile information
+    # Informações de perfil
     full_name = st.session_state.get("full_name", username)
     role_display = "Administrador" if role == "admin" else "Gestor de Frota"
     
@@ -590,40 +600,38 @@ def sidebar_user_info() -> None:
         <div class="user-profile-container">
             <div class="user-profile-name">{full_name}</div>
             <div class="user-profile-role">{role_display}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     
-    # Try to get location from IP
-    location_text = "Não disponível"
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    
     try:
         resp = requests.get("https://ipinfo.io/json", timeout=1).json()
-        city = resp.get("city", "")
+        city   = resp.get("city", "")
+        region = resp.get("region", "")
+        country= resp.get("country", "")
         if city:
             location_text = f"{city}"
     except Exception:
         pass
 
-    # Current date and time
+    # 3) Data e hora
     now = datetime.now().strftime("%d %b %Y, %H:%M")
 
-    # Location and datetime display
+    # 4) bloco combinado
     st.sidebar.markdown(f"""
     <div class="sidebar-section">
       <div class="sidebar-heading">Localização | Data & Hora</div>
       <div style="font-size:0.9rem; color:{COLORS['muted']}">
-        <span class="material-icons" style="font-size:14px; vertical-align:middle; margin-right:4px;">{ICONS['location']}</span>{location_text} | 
-        <span class="material-icons" style="font-size:14px; vertical-align:middle; margin-right:4px;">{ICONS['calendar']}</span>{now}
+        {location_text} | {now}
       </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Add some vertical spacing
     st.sidebar.write("")
     st.sidebar.write("")
-    
-    # Quick links section
+    # Links rápidos
     st.sidebar.markdown(
         """
         <div class="sidebar-section">
@@ -632,42 +640,20 @@ def sidebar_user_info() -> None:
         """,
         unsafe_allow_html=True
     )
+
+    if "show_notifications" not in st.session_state:
+        st.session_state.show_notifications = False
+    if "show_support" not in st.session_state:
+        st.session_state.show_support = False
     
-    # Notifications button with toggle functionality
-    if st.sidebar.button(
-        "Notificações", 
-        key="notifications_btn", 
-        icon=f":material/{ICONS['notifications']}:"
-    ):
+    # Botões de ação rápida na sidebar
+    if st.sidebar.button("Notificações", key="notifications_btn", icon=f":material/{ICONS['notifications']}:"):
+        # Futuramente: Exibir notificações em um modal
         st.session_state.show_notifications = not st.session_state.show_notifications
     
-    # Show notifications panel when active
     if st.session_state.show_notifications:
-        with st.sidebar.container():
-            st.markdown(
-                f"""
-                <div style="margin-bottom:15px;">
-                    <div class="sidebar-heading" style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>Notificações</span>
-                        <span style="color:{COLORS['primary']}; font-size:12px; cursor:pointer;">Marcar todas como lidas</span>
-                    </div>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-            
-            # No notifications message
-            st.markdown(
-                f"""
-                <div style="text-align:center; padding:15px; color:{COLORS['muted']}; border:1px dashed #e0e0e0; border-radius:8px;">
-                    <span class="material-icons" style="font-size:24px; opacity:0.5; display:block; margin:0 auto 10px auto;">notifications_none</span>
-                    <p>Sem notificações novas</p>
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+        st.sidebar.info("Sem notificações novas")
     
-    # Support button with toggle functionality
     if st.sidebar.button(
         "Suporte",
         key="support_btn",
@@ -675,51 +661,31 @@ def sidebar_user_info() -> None:
     ):
         st.session_state.show_support = not st.session_state.show_support
 
-    # Show support panel when active
     if st.session_state.show_support:
-        st.sidebar.markdown(f"""
-        <div style="border-left: 3px solid {COLORS["primary"]}; padding:15px; background-color:{COLORS["primary"]}10; border-radius:4px;">
-            <div style="display:flex; align-items:center; margin-bottom:15px;">
-                <span class="material-icons" style="color:{COLORS["primary"]}; margin-right:8px;">{ICONS["support"]}</span>
-                <span style="font-weight:600; color:{COLORS["secondary"]};">Suporte Técnico</span>
-            </div>
-            
-            <div style="margin-left:30px;">
-                <p style="margin-bottom:10px;">
-                    <span class="material-icons" style="font-size:16px; vertical-align:middle; color:{COLORS["primary"]}; margin-right:5px;">{ICONS["person"]}</span>
-                    <strong>Filipe Ferreira</strong>
-                </p>
-                <p style="margin-bottom:10px;">
-                    <span class="material-icons" style="font-size:16px; vertical-align:middle; color:{COLORS["primary"]}; margin-right:5px;">{ICONS["phone"]}</span>
-                    <a href="tel:919122277" style="text-decoration:none; color:{COLORS["secondary"]};">919 122 277</a>
-                </p>
-                <p style="margin-bottom:10px;">
-                    <span class="material-icons" style="font-size:16px; vertical-align:middle; color:{COLORS["primary"]}; margin-right:5px;">{ICONS["email"]}</span>
-                    <a href="mailto:suporte@ffmanutencontrol.com" style="text-decoration:none; color:{COLORS["secondary"]};">suporte@ffmanutencontrol.com</a>
-                </p>
-                <p style="margin-bottom:5px;">
-                    <span class="material-icons" style="font-size:16px; vertical-align:middle; color:{COLORS["primary"]}; margin-right:5px;">{ICONS["clock"]}</span>
-                    <small>Segunda a Sexta: 9h-18h</small>
-                </p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # App version in the sidebar footer
+        st.sidebar.info("""
+        ### Para suporte, contacte:
+        **Nome:** Filipe Ferreira  
+        **Telefone:** 919122277  
+        """)
+        
+    # Versão do sistema no rodapé da sidebar
     st.sidebar.markdown(
-        f"""
+        """
         <div style='position: fixed; bottom: 20px; left: 20px; opacity: 0.7;'>
-            <small>Versão {APP_VERSION}</small>
+            <small>Versão 1.0.0</small>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Add vertical spacing
-    for _ in range(6):
-        st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
 
-    # Logout button
+
     if st.sidebar.button(
         "Sair",
         key="logout_btn",
@@ -729,23 +695,24 @@ def sidebar_user_info() -> None:
         st.rerun()
 
 
-def render_navigation_menu() -> None:
-    """Build horizontal menu with icons and handle page navigation."""
-    # Get current page
+def render_menu() -> None:
+    """Constrói o menu horizontal com ícones e altera a página atual, com estilo aprimorado."""
+
+    # Obter página atual
     current_page = st.session_state.current_page
     
-    # Material Design icons for menu items
+    # Ícones do Material Design para cada item do menu
     icons = {
-        "Dashboard": f":material/{ICONS['dashboard']}:",
-        "Empresas": f":material/{ICONS['companies']}:",
-        "Máquinas": f":material/{ICONS['machines']}:",
-        "Manutenções": f":material/{ICONS['maintenances']}:",
-        "Faturação": f":material/{ICONS['billing']}:",
-        "Utilizadores": f":material/{ICONS['users']}:",
-        "Configurações": f":material/{ICONS['settings']}:",
+        "Dashboard": ":material/dashboard:",
+        "Empresas": ":material/domain:",
+        "Máquinas": ":material/precision_manufacturing:",
+        "Manutenções": ":material/build:",
+        "Faturação": ":material/receipt_long:",
+        "Utilizadores": ":material/group:",
+        "Configurações": ":material/settings:",
     }
     
-    # Define menu items based on user role
+    # Definir itens do menu baseado no papel do usuário
     menu_items = [
         ("Dashboard", "Dashboard"),
         ("Empresas", "Companies"),
@@ -754,7 +721,6 @@ def render_navigation_menu() -> None:
         ("Faturação", "Billing"),
     ]
     
-    # Add admin-only options if user is admin
     if is_admin():
         menu_items.extend([
             ("Utilizadores", "Users"),
@@ -763,19 +729,19 @@ def render_navigation_menu() -> None:
     else:
         menu_items.append(("Configurações", "Settings"))
     
-    # Container for enhanced menu
+    # Container para o menu com estilo aprimorado
     st.markdown('<div class="navigation-container">', unsafe_allow_html=True)
     
-    # Create columns for menu
+    # Criar colunas para o menu
     cols = st.columns(len(menu_items))
     
-    # Render buttons for each menu item
+    # Renderizar botões para cada item do menu
     for i, (label, page_id) in enumerate(menu_items):
         with cols[i]:
-            # Check if this is the current page
+            # Verificar se é a página atual
             is_current = page_id == current_page
             
-            # Create Streamlit button
+            # Criar botão com Streamlit
             if st.button(
                 label,
                 key=f"btn_{page_id}",
@@ -786,33 +752,29 @@ def render_navigation_menu() -> None:
                 st.session_state.current_page = page_id
                 st.rerun()
             
-                    # Add visual indicator for current page
+            # Adicionar indicador visual para a página atual
             if is_current:
                 st.markdown(f'<div class="page-indicator"></div>', unsafe_allow_html=True)
     
+    st.markdown('<div class="sticky-header">', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-
+    
 
 def render_page(page: str) -> None:
-    """
-    Route to the correct page, handling errors gracefully.
-    
-    Args:
-        page: The page identifier to render
-    """
+    """Despacha para a página correta, capturando e tratando erros de forma elegante."""
     try:
         if page == "Dashboard":
-            # Special handling for known dashboard issues
+            # Tratamento especial para problemas conhecidos no dashboard
             try:
                 dashboard.show_dashboard()
             except TypeError as e:
                 if "unsupported operand type(s) for +" in str(e) and "datetime" in str(e):
                     st.error("Ocorreu um erro na visualização da linha do tempo. Alguns gráficos não estão disponíveis.")
                     
-                    # Display simplified dashboard with metric cards
+                    # Exibir dashboard simplificado
                     st.subheader("Dashboard da Frota")
                     
-                    # Create manual metric cards with Material Design icons
+                    # Criar cards de métricas manuais 
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
@@ -821,7 +783,7 @@ def render_page(page: str) -> None:
                                 title="Total de Máquinas",
                                 value="32",
                                 delta=5,
-                                icon=ICONS["machine"]
+                                icon="🚚"
                             ),
                             unsafe_allow_html=True
                         )
@@ -832,7 +794,7 @@ def render_page(page: str) -> None:
                                 title="Manutenções Próximas",
                                 value="8",
                                 delta=-2,
-                                icon=ICONS["pending"],
+                                icon="🔔",
                                 color=COLORS["warning"]
                             ),
                             unsafe_allow_html=True
@@ -844,7 +806,7 @@ def render_page(page: str) -> None:
                                 title="Manutenções Atrasadas",
                                 value="3",
                                 delta=0,
-                                icon=ICONS["late"],
+                                icon="⚠️",
                                 color=COLORS["danger"]
                             ),
                             unsafe_allow_html=True
@@ -856,25 +818,16 @@ def render_page(page: str) -> None:
                                 title="Taxa de Conclusão",
                                 value="85%",
                                 delta=7,
-                                icon=ICONS["completed"],
+                                icon="✓",
                                 color=COLORS["success"]
                             ),
                             unsafe_allow_html=True
                         )
                     
-                    # Message to the user with Material Design icon
-                    st.info(
-                        f"""
-                        <div style="display:flex; align-items:center;">
-                            <span class="material-icons" style="margin-right:8px;">engineering</span>
-                            Estamos trabalhando para resolver o problema de visualização da linha do tempo. 
-                            Enquanto isso, você pode acessar as demais funcionalidades normalmente.
-                        </div>
-                        """, 
-                        unsafe_allow_html=True
-                    )
+                    # Mensagem ao usuário
+                    st.info("⚙️ Estamos trabalhando para resolver o problema de visualização da linha do tempo. Enquanto isso, você pode acessar as demais funcionalidades normalmente.")
                 else:
-                    # Re-raise other errors
+                    # Re-levantar outros erros
                     raise
                 
         elif page == "Companies":
@@ -888,15 +841,7 @@ def render_page(page: str) -> None:
                 users.show_users()
             else:
                 st.error("Acesso restrito.")
-                st.info(
-                    f"""
-                    <div style="display:flex; align-items:center;">
-                        <span class="material-icons" style="margin-right:8px;">lock</span>
-                        Você não tem permissões para acessar esta página. Por favor, contacte um administrador.
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
+                st.info("Você não tem permissões para acessar esta página. Por favor, contacte um administrador.")
         elif page == "Settings":
             settings.show_settings()
         elif page == "Billing":
@@ -905,67 +850,32 @@ def render_page(page: str) -> None:
                 show_billing()
             except ImportError:
                 st.error("Módulo de faturação não disponível.")
-                st.info(
-                    f"""
-                    <div style="display:flex; align-items:center;">
-                        <span class="material-icons" style="margin-right:8px;">construction</span>
-                        O módulo de faturação está em desenvolvimento ou não está disponível nesta instalação.
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
+                st.info("O módulo de faturação está em desenvolvimento ou não está disponível nesta instalação.")
         else:
             st.error("Página não encontrada.")
-            st.info(
-                f"""
-                <div style="display:flex; align-items:center;">
-                    <span class="material-icons" style="margin-right:8px;">search_off</span>
-                    A página solicitada não está disponível. Por favor, selecione uma opção no menu acima.
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+            st.info("A página solicitada não está disponível. Por favor, selecione uma opção no menu acima.")
             
     except Exception as e:
-        # Global error handling for any uncaught exceptions
+        # Tratamento global de erros para qualquer exceção não capturada
         st.error(f"Ocorreu um erro inesperado: {type(e).__name__}")
-        st.info(
-            f"""
-            <div style="display:flex; align-items:center;">
-                <span class="material-icons" style="margin-right:8px;">support_agent</span>
-                Nossa equipa foi notificada e está a trabalhar para resolver o problema.
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
+        st.info("Nossa equipa foi notificada e está a trabalhar para resolver o problema.")
         
-        # Show more detailed error info for admins or in development
+        # Apenas para administradores ou ambiente de desenvolvimento
         if is_admin() or os.getenv("ENVIRONMENT") == "development":
             st.exception(e)
 
-# ------------------------------------------------------------------------------
-# Main Application Flow
-# ------------------------------------------------------------------------------
-def main():
-    """Primary application entry point and flow control."""
-    # Initialize session state
-    initialize_session_state()
-    
-    # Apply global styles
-    apply_global_styles()
-    
-    # Handle application flow based on login state
-    if not st.session_state.logged_in:
-        login_screen()
-    else:
-        # Build the app UI
-        sidebar_user_info()
-        render_navigation_menu()
-        render_page(st.session_state.current_page)
 
+# ----------------------------------------------------------------------------
+# Execução da Aplicação
+# ----------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-# Application Entry Point
-# ------------------------------------------------------------------------------
-if __name__ == "__main__":
-    main()
+# Aplicar estilos globais
+apply_global_styles()
+
+# Fluxo principal da aplicação
+if not st.session_state.logged_in:
+    login_screen()
+else:
+    sidebar_user_info()
+    render_menu()
+    render_page(st.session_state.current_page)
