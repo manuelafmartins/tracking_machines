@@ -97,7 +97,8 @@ def show_machines():
                 license_plate = st.text_input("Matrícula (formato: 00-AA-00)")
                 
                 # Botão para buscar informações do veículo
-                if license_plate and st.button("Buscar Informações do Veículo", key="fetch_vehicle_info"):
+                fetch_vehicle_info = st.form_submit_button("Buscar Informações do Veículo", type="secondary")
+                if license_plate and fetch_vehicle_info:
                     vehicle_info = get_vehicle_info_by_plate(license_plate)
                     if vehicle_info:
                         st.session_state["vehicle_brand"] = vehicle_info["brand"]
