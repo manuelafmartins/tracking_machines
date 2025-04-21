@@ -30,7 +30,7 @@ def show_users():
                     user["company_name"] = company["name"]
     
     # Criação das abas
-    tab_existentes, tab_novo = st.tabs(["Utilizadores Existentes", "Criar Novo Utilizador"])
+    tab_existentes, tab_novo = st.tabs(["Utilizadores Atuais", "Criar Novo Utilizador"])
     
     # Tab 1: Utilizadores Existentes
     with tab_existentes:
@@ -207,11 +207,25 @@ def show_users():
         else:
             st.info("Nenhum utilizador encontrado.")
 
+    # Inicializar o estado da função selecionada, se não existir
+    if "selected_role" not in st.session_state:
+        st.session_state.selected_role = "fleet_manager"  # valor padrão
+
     # Tab 2: Criar Novo Utilizador
     with tab_novo:
-        # Criar formulário para novo utilizador
+        st.subheader("Criar Novo Utilizador")
+        
+        # Passo 1: Seleção de função (fora do formulário)
+        role = st.selectbox(
+            "1. Selecione a Função para o novo utilizador", 
+            ["admin", "fleet_manager"], 
+            format_func=lambda x: "Administrador" if x == "admin" else "Gestor de Frota",
+            key="new_user_role"
+        )
+        
+        # Passo 2: Formulário com os campos apropriados
         with st.form("new_user"):
-            st.subheader("Dados do Novo Utilizador")
+            st.subheader("Dados do Utilizador")
             
             username = st.text_input("Nome de Utilizador")
             password = st.text_input("Palavra-passe", type="password")
@@ -221,16 +235,10 @@ def show_users():
             phone_number = st.text_input("Número de Telefone (com código do país)", value="+351")
             notifications_enabled = st.checkbox("Ativar notificações por SMS", value=True)
             
-            st.markdown("---")
-            st.subheader("Função e Empresa")
-            
-            # Seleção de função
-            role = st.selectbox("Função", ["admin", "fleet_manager"], 
-                              format_func=lambda x: "Administrador" if x == "admin" else "Gestor de Frota")
-            
-            # Seleção de empresa (para gestores de frota)
+            # Seleção de empresa (apenas para gestores de frota)
             company_id = None
             if role == "fleet_manager":
+                st.markdown("### Empresa do Gestor")
                 if companies:
                     company_options = [c["id"] for c in companies]
                     company_labels = [c["name"] for c in companies]

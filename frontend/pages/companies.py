@@ -206,7 +206,7 @@ def render_edit_form(comp):
         current_payment = st.session_state.edit_company_data.get("payment_method", PAYMENT_METHODS[0])
         payment_index = PAYMENT_METHODS.index(current_payment) if current_payment in PAYMENT_METHODS else 0
 
-        new_payment_method = st.selectbox("Método de Pagamento Preferido", PAYMENT_METHODS, index=payment_index)
+        new_payment_method = st.selectbox("Método de Pagamento", PAYMENT_METHODS, index=payment_index)
         new_iban = st.text_input("IBAN (para transferências)", value=st.session_state.edit_company_data.get("iban", ""))
         new_logo = st.file_uploader("Atualizar Logo (opcional)", type=["png", "jpg", "jpeg"])
 
@@ -378,7 +378,7 @@ def show_companies():
                 with col2:
                     billing_email = st.text_input("Email de Faturação")
                     phone = st.text_input("Telefone")
-                    payment_method = st.selectbox("Método de Pagamento Preferido", PAYMENT_METHODS)
+                    payment_method = st.selectbox("Método de Pagamento", PAYMENT_METHODS)
                     iban = st.text_input("IBAN (para transferências bancárias)")
                     company_logo = st.file_uploader("Logo da Empresa (opcional)", type=["png", "jpg", "jpeg"])
                 
