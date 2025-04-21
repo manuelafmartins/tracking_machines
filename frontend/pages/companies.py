@@ -166,29 +166,28 @@ def render_company_card(comp):
             col_b1, col_b2 = st.columns(2)
             with col_b1:
                 st.button(
-                    "✏️ Editar",
+                    "Editar",
                     key=f"edit_company_{comp['id']}",
+                    use_container_width=True, icon=":material/edit:",
                     on_click=lambda id=comp["id"]: set_edit_state(id, comp)
                 )
             with col_b2:
                 show_delete_button(
                     "company",
                     comp["id"],
-                    label="🗑️ Excluir",
-                    confirm_text=f"Tem certeza que deseja excluir {comp['name']}?"
+                    label="Eliminar",
+                    confirm_text=f"Tem certeza que deseja eliminar {comp['name']}?"
                 )
 
 def render_edit_form(comp):
-    st.markdown("## ✏️ Editar Empresa")
+    st.markdown("## Editar Empresa")
 
     # Certifique-se de que todos os valores da empresa estejam no session_state
     if "edit_company_data" not in st.session_state:
         set_edit_state(comp["id"], comp)
     
     # Mostrar os dados originais da empresa para referência
-    with st.expander("Dados originais da empresa (Debug)", expanded=False):
-        st.json(st.session_state.edit_company_data)
-
+   
     col1, col2 = st.columns(2)
     with col1:
         new_name = st.text_input("Nome da Empresa", value=st.session_state.edit_company_data.get("name", ""))
@@ -223,15 +222,13 @@ def render_edit_form(comp):
         st.warning(err)
 
     # Criar dois botões - um normal e um para diagnóstico detalhado
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         submit = st.button("💾 Guardar Alterações", key=f"submit_edit_{comp['id']}")
     with col2:
-        submit_debug = st.button("🔍 Guardar com Diagnóstico", key=f"submit_debug_{comp['id']}")
-    with col3:
         cancel = st.button("❌ Cancelar", key=f"cancel_edit_{comp['id']}")
 
-    if (submit or submit_debug) and not errors:
+    if (submit) and not errors:
         # Preparar todos os dados para envio, incluindo valores originais para campos não alterados
         update_data = {
             "name": new_name,
@@ -252,19 +249,6 @@ def render_edit_form(comp):
             if logo_relative_path:
                 update_data["logo_path"] = logo_relative_path
 
-        # Modo de diagnóstico detalhado
-        if submit_debug:
-            st.write("### Diagnóstico de Atualização")
-            success = update_company_direct(comp['id'], update_data)
-            
-            if success:
-                st.success("✅ Empresa atualizada com sucesso!")
-                # Limpar os estados de edição e recarregar a página
-                if "edit_company_id" in st.session_state:
-                    del st.session_state["edit_company_id"]
-                if "edit_company_data" in st.session_state:
-                    del st.session_state["edit_company_data"]
-                st.rerun()
         else:
             # Modo de atualização normal
             try:

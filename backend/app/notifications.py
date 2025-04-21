@@ -29,7 +29,14 @@ def init_vonage_client():
         return None
     
     try:
-        client = vonage.Client(key=VONAGE_API_KEY, secret=VONAGE_API_SECRET)
+        import vonage
+        # Verificar qual é o método correto para a versão atual
+        if hasattr(vonage, 'Client'):
+            # Para versões mais novas
+            client = vonage.Client(key=VONAGE_API_KEY, secret=VONAGE_API_SECRET)
+        else:
+            # Para versões mais antigas (2.x e abaixo)
+            client = vonage.nexmo.Client(key=VONAGE_API_KEY, secret=VONAGE_API_SECRET)
         return client
     except Exception as e:
         logger.error(f"Failed to initialize Vonage client: {str(e)}")
@@ -57,9 +64,17 @@ def send_sms_notification(phone_number: str, message: str) -> bool:
         return False
     
     try:
-        sms = vonage.Sms(client)
+        import vonage
+        # Verificar qual é o método correto para a versão atual
+        if hasattr(vonage, 'Sms'):
+            # Para versões mais novas
+            sms = vonage.Sms(client)
+        else:
+            # Para versões mais antigas (2.x e abaixo)
+            sms = client.sms
+            
         response_data = sms.send_message({
-            "from": "FleetPilot",
+            "from": "FF ManutControl",
             "to": phone_number,
             "text": message,
         })
@@ -73,7 +88,6 @@ def send_sms_notification(phone_number: str, message: str) -> bool:
     except Exception as e:
         logger.error(f"Exception while sending SMS notification: {str(e)}")
         return False
-
 def notify_admins(db: Session, message: str) -> int:
     """
     Send notification to all admin users
@@ -93,17 +107,29 @@ def notify_admins(db: Session, message: str) -> int:
         User.phone_number.isnot(None)  # Only users with phone numbers
     ).all()
     
+    logging.info(f"Found {len(admin_users)} admin users with notifications enabled")
+    
+    # Check if no admins were found
+    if not admin_users:
+        logging.warning("No admin users found with notifications enabled and valid phone numbers")
+        return 0
+    
     success_count = 0
     
     for admin in admin_users:
         if admin.phone_number:
+            logging.info(f"Attempting to send notification to admin {admin.username} at {admin.phone_number}")
+            
             # Add timestamp to message
             timestamped_message = f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] {message}"
             
             if send_sms_notification(admin.phone_number, timestamped_message):
                 success_count += 1
+                logging.info(f"Successfully sent notification to {admin.username}")
+            else:
+                logging.error(f"Failed to send notification to {admin.username}")
     
-    logger.info(f"Sent admin notifications to {success_count} of {len(admin_users)} admins")
+    logging.info(f"Sent admin notifications to {success_count} of {len(admin_users)} admins")
     return success_count
 
 def notify_company_managers(db: Session, company_id: int, message: str) -> int:
@@ -204,7 +230,7 @@ def notify_new_user_created(db: Session, username: str, role: str, company_name:
         message = unidecode(f"Novo usuário '{username}' com função '{role}' criado")
     
     # Only notify admins about new users
-    notify_admins(db, message)
+    return notify_admins(db, message)
 
 def notify_upcoming_maintenance(db: Session, machine_name: str, maintenance_type: str, 
                               scheduled_date: str, days_remaining: int,

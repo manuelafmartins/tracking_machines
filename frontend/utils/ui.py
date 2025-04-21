@@ -2,7 +2,7 @@
 import streamlit as st
 from .api import delete_api_data
 
-def show_delete_button(item_type, item_id, label="Excluir", confirm_text=None):
+def show_delete_button(item_type, item_id, label="Eliminar", confirm_text=None):
     """
     Display a delete button with confirmation.
     
@@ -27,7 +27,7 @@ def show_delete_button(item_type, item_id, label="Excluir", confirm_text=None):
         
         with col1:
             # Botão de confirmação
-            if st.button("Confirmar Exclusão", key=f"confirm_delete_btn_{item_type}_{item_id}"):
+            if st.button("Confirmar Eliminar", key=f"confirm_delete_btn_{item_type}_{item_id}", use_container_width=True, icon=":material/delete:"):
                 # Mapear tipos de itens para seus endpoints correspondentes
                 endpoint_map = {
                     "user": f"auth/users/{item_id}",
@@ -44,7 +44,7 @@ def show_delete_button(item_type, item_id, label="Excluir", confirm_text=None):
                     endpoint = f"{item_type}s/{item_id}"
                 
                 if delete_api_data(endpoint):
-                    st.success(f"{item_type.capitalize()} excluído com sucesso!")
+                    st.success(f"{item_type.capitalize()} eliminado com sucesso!")
                     # Reset confirmation status
                     st.session_state[confirm_key] = False
                     st.rerun()

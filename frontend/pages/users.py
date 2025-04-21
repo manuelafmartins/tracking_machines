@@ -15,7 +15,7 @@ import base64
 
 def show_users():
     st.title("Gestão de Utilizadores")
-    
+        
     st.markdown("""
         <style>
         
@@ -104,7 +104,7 @@ def show_users():
     with tab_existentes:
         if users:
             # Adicionar campo de pesquisa
-            search_query = st.text_input("Pesquisar utilizador", placeholder="Escreva para procurar...")
+            search_query = st.text_input("🔍 Pesquisar utilizador", placeholder="Digite para filtrar...")
             
             # Filtrar usuários se houver termo de pesquisa
             filtered_users = users
@@ -120,7 +120,7 @@ def show_users():
             
             # Contador de usuários
             if search_query:
-                st.write(f"Resultados: {len(filtered_users)} de {len(users)} utilizadores")
+                st.write(f"Exibindo {len(filtered_users)} de {len(users)} utilizadores")
             else:
                 st.write(f"Total de utilizadores: {len(users)}")
                 
@@ -180,10 +180,8 @@ def show_users():
                         st.write(f"**Notificações:** {notif_status}")
                     
                     with col2:
-                        # Botão de edição com fundo azul escuro e ícone branco
-                        if st.button("Editar", key=f"edit_user_{user['id']}", 
-                                    use_container_width=True,
-                                    icon=":material/edit:"):
+                        # Botão de edição
+                        if st.button("Editar", key=f"edit_user_{user['id']}", use_container_width=True, icon=":material/edit:"):
                             st.session_state["edit_user_id"] = user["id"]
                             st.session_state["edit_user_username"] = user["username"]
                             st.session_state["edit_user_full_name"] = user.get("full_name", "")
@@ -191,26 +189,19 @@ def show_users():
                             st.session_state["edit_user_role"] = user.get("role", "fleet_manager")
                             st.session_state["edit_user_company_id"] = user.get("company_id")
                             st.session_state["edit_user_is_active"] = user.get("is_active", True)
-                            st.session_state["edit_user_phone_number"] = user.get("phone_number", "")
-                            st.session_state["edit_user_notifications_enabled"] = user.get("notifications_enabled", True)
-                        
-                       
                         
                         # Não permitir excluir o utilizador atual
                         if user["id"] != st.session_state.get("user_id"):
-                            # Botão para excluir com fundo azul escuro e ícone branco
-                            if st.button("Excluir", key=f"delete_user_{user['id']}", 
-                                        use_container_width=True,
-                                        icon=":material/delete:"):
-                                show_delete_button(
-                                    "user", user["id"], 
-                                    confirm_text=f"Tem certeza que deseja excluir o utilizador {user['username']}?")
+                            # Botão para excluir utilizador com confirmação
+                            show_delete_button("user", user["id"], 
+                                label="Eliminar",
+                                confirm_text=f"Tem certeza que deseja eliminar o utilizador {user['username']}?")
 
                 
                 # Formulário de edição aparece se este utilizador estiver sendo editado
                 if st.session_state.get("edit_user_id") == user["id"]:
                     with st.form(f"edit_user_{user['id']}"):
-                        st.subheader(f"Editar Utilizador: {st.session_state.get('edit_user_full_name')}")
+                        st.subheader(f"Editar Utilizador: {user['username']}")
                         
                         edit_username = st.text_input("Nome de Utilizador", value=st.session_state["edit_user_username"])
                         edit_password = st.text_input("Nova Palavra-passe (deixe em branco para manter a atual)", type="password")
@@ -267,9 +258,6 @@ def show_users():
                                 edit_company_id = company_options[selected_company_idx]
                             else:
                                 st.warning("Não existem empresas disponíveis.")
-                        else:
-                            # Para administradores, mostrar que a empresa não é aplicável
-                            st.write("**Empresa:** Não aplicável para Administradores")
                         
                         # Status ativo
                         edit_is_active = st.checkbox("Ativo", value=st.session_state["edit_user_is_active"])
@@ -277,16 +265,9 @@ def show_users():
                         # Declarar as colunas aqui para evitar o erro "Missing Submit Button"
                         form_cols = st.columns(2)
                         with form_cols[0]:
-                            submit_edit = st.form_submit_button("Salvar Alterações",
-                                                                type="primary",
-                                                                use_container_width=True,
-                                                                icon=":material/save:")
-
+                            submit_edit = st.form_submit_button("Salvar Alterações")
                         with form_cols[1]:
-                            cancel_edit = st.form_submit_button("Cancelar",
-                                                                type="secondary",
-                                                                use_container_width=True,
-                                                                icon=":material/cancel:")
+                            cancel_edit = st.form_submit_button("Cancelar")
                         
                         if submit_edit:
                             # Construir dados de atualização
@@ -328,6 +309,10 @@ def show_users():
         else:
             st.info("Nenhum utilizador encontrado.")
 
+    # Inicializar o estado da função selecionada, se não existir
+    if "selected_role" not in st.session_state:
+        st.session_state.selected_role = "fleet_manager"  # valor padrão
+
     # Tab 2: Criar Novo Utilizador
     with tab_novo:
         st.subheader("Criar Novo Utilizador")
@@ -367,21 +352,8 @@ def show_users():
                     company_id = company_options[selected_company_idx]
                 else:
                     st.warning("Não existem empresas disponíveis. Por favor, crie uma empresa primeiro.")
-            else:
-                st.markdown("")
             
-            # Botões com estilo consistente
-            col1, col2 = st.columns(2)
-            with col1:
-                submitted = st.form_submit_button("Criar Utilizador", 
-                                                 use_container_width=True,
-                                                 icon=":material/person_add:")
-            with col2:
-                cancel = st.form_submit_button("Cancelar", 
-                                              use_container_width=True,
-                                              icon=":material/cancel:")
-            
-           
+            submitted = st.form_submit_button("Criar Utilizador")
             
             if submitted:
                 if not username or not password:
@@ -407,7 +379,3 @@ def show_users():
                     if post_api_data("auth/users", user_data):
                         st.success(f"Utilizador '{username}' criado com sucesso!")
                         st.rerun()
-            
-            if cancel:
-                # Limpar campos do formulário e voltar para a lista
-                st.rerun()

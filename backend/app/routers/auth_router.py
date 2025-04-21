@@ -99,6 +99,7 @@ def create_new_user(
             detail="Username already registered"
         )
 
+    # Esta linha é crítica - ela deve definir a variável new_user
     new_user = crud.create_user(db=db, user=user, role=user.role)
 
     # Include company name if the new user is a fleet manager
@@ -119,6 +120,7 @@ def create_new_user(
     except Exception as e:
         logging.error(f"Failed to send user creation notification: {e}")
 
+    # Retorna o usuário criado
     return new_user
 
 
