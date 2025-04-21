@@ -164,19 +164,33 @@ def get_download_link(pdf_bytes, filename):
 def show_billing():
     st.title("Gestão de Faturação")
     
+    # Inicializar estado para itens de fatura 
+    if "invoice_items" not in st.session_state:
+        st.session_state.invoice_items = []
+    
+    # Inicializar estado para o item a ser adicionado
+    if "new_item_service_id" not in st.session_state:
+        st.session_state.new_item_service_id = None
+        st.session_state.new_item_quantity = 1.0
+        st.session_state.new_item_price = 0.0
+        st.session_state.new_item_machine_id = None
+        st.session_state.new_item_description = ""
+    
     # Criar tabs para organizar o módulo
     tab1, tab2, tab3 = st.tabs(["Faturas", "Serviços", "Relatórios"])
     
     # TAB 1: FATURAS
     with tab1:
+        # Buscar empresas para o dropdown
+        companies = get_api_data("companies") or []
+        
         # Seção para criar nova fatura
         with st.expander("Criar Nova Fatura", expanded=False):
-            # Formulário para criar fatura
+            # Formulário principal para criar fatura
             with st.form("new_invoice_form"):
-                # Buscar empresas para o dropdown
-                companies = get_api_data("companies") or []
                 if not companies:
                     st.warning("Não existem empresas cadastradas. Cadastre uma empresa primeiro.")
+                    st.form_submit_button("OK", disabled=True)
                     st.stop()
                 
                 # Selecionar empresa
@@ -216,96 +230,9 @@ def show_billing():
                 # Notas
                 notes = st.text_area("Notas/Observações")
                 
-                # Seção para adicionar itens da fatura
-                st.subheader("Itens da Fatura")
-                
-                # Buscar serviços disponíveis
-                services = get_api_data("billing/services?active_only=true") or []
-                if not services:
-                    st.warning("Não existem serviços cadastrados. Cadastre um serviço primeiro na aba 'Serviços'.")
-                
-                # Container para itens da fatura
-                if "invoice_items" not in st.session_state:
-                    st.session_state.invoice_items = []
-                
-                # Interface para adicionar um item
-                service_options = [s["id"] for s in services]
-                service_labels = [f"{s['name']} ({s['unit_price']}€)" for s in services]
-                
-                if service_options:
-                    col1, col2, col3 = st.columns([3, 1, 1])
-                    with col1:
-                        selected_service_idx = st.selectbox(
-                            "Serviço",
-                            options=range(len(service_options)),
-                            format_func=lambda idx: service_labels[idx],
-                            key="new_item_service"
-                        )
-                        selected_service_id = service_options[selected_service_idx]
-                        selected_service = next((s for s in services if s["id"] == selected_service_id), None)
-                    
-                    with col2:
-                        quantity = st.number_input("Quantidade", min_value=0.1, value=1.0, step=0.1, key="new_item_quantity")
-                    
-                    with col3:
-                        unit_price = st.number_input(
-                            "Preço Unit.",
-                            min_value=0.0,
-                            value=selected_service["unit_price"] if selected_service else 0.0,
-                            step=0.01,
-                            key="new_item_price"
-                        )
-                    
-                    # Máquina associada (opcional)
-                    if machines:
-                        machine_options = [0] + [m["id"] for m in machines]
-                        machine_labels = ["Nenhuma"] + [m["name"] for m in machines]
-                        
-                        selected_machine_idx = st.selectbox(
-                            "Máquina (opcional)",
-                            options=range(len(machine_options)),
-                            format_func=lambda idx: machine_labels[idx],
-                            key="new_item_machine"
-                        )
-                        selected_machine_id = machine_options[selected_machine_idx] if selected_machine_idx > 0 else None
-                    else:
-                        selected_machine_id = None
-                    
-                    # Descrição personalizada
-                    custom_description = st.text_input(
-                        "Descrição Personalizada (opcional)",
-                        value=selected_service["name"] if selected_service else "",
-                        key="new_item_description"
-                    )
-                    
-                    # Botão para adicionar item à lista
-                    if st.button("Adicionar Item"):
-                        tax_rate = selected_service["tax_rate"] if selected_service else 23.0
-                        subtotal = quantity * unit_price
-                        tax_amount = subtotal * (tax_rate / 100)
-                        total = subtotal + tax_amount
-                        
-                        new_item = {
-                            "service_id": selected_service_id,
-                            "machine_id": selected_machine_id,
-                            "quantity": quantity,
-                            "unit_price": unit_price,
-                            "tax_rate": tax_rate,
-                            "description": custom_description,
-                            "subtotal": subtotal,
-                            "tax_amount": tax_amount,
-                            "total": total,
-                            # Campos extras para exibição na UI
-                            "service_name": selected_service["name"] if selected_service else "",
-                            "machine_name": next((m["name"] for m in machines if m["id"] == selected_machine_id), "") if selected_machine_id else ""
-                        }
-                        
-                        st.session_state.invoice_items.append(new_item)
-                        st.success("Item adicionado!")
-                
-                # Exibir itens adicionados
+                # Exibir itens já adicionados (se existirem)
                 if st.session_state.invoice_items:
-                    st.write("Items adicionados à fatura:")
+                    st.subheader("Itens adicionados à fatura:")
                     
                     items_df = pd.DataFrame(st.session_state.invoice_items)
                     if not items_df.empty:
@@ -336,8 +263,9 @@ def show_billing():
                         st.write(f"**IVA Total:** {tax_total:.2f} €")
                         st.write(f"**TOTAL:** {total:.2f} €")
                         
-                        # Botão para limpar itens
-                        if st.button("Limpar todos os itens"):
+                        # Botão para limpar itens (dentro do formulário)
+                        clear_items = st.form_submit_button("Limpar todos os itens")
+                        if clear_items:
                             st.session_state.invoice_items = []
                             st.rerun()
                 
@@ -375,6 +303,89 @@ def show_billing():
                             st.success("Fatura criada com sucesso!")
                             st.session_state.invoice_items = []
                             st.rerun()
+            
+            # Formulário para adicionar item (separado do formulário principal)
+            services = get_api_data("billing/services?active_only=true") or []
+            if services:
+                st.subheader("Adicionar Item à Fatura")
+                with st.form("add_item_form"):
+                    service_options = [s["id"] for s in services]
+                    service_labels = [f"{s['name']} ({s['unit_price']}€)" for s in services]
+                    
+                    col1, col2, col3 = st.columns([3, 1, 1])
+                    with col1:
+                        selected_service_idx = st.selectbox(
+                            "Serviço",
+                            options=range(len(service_options)),
+                            format_func=lambda idx: service_labels[idx],
+                            key="new_item_service_select"
+                        )
+                        selected_service_id = service_options[selected_service_idx]
+                        selected_service = next((s for s in services if s["id"] == selected_service_id), None)
+                    
+                    with col2:
+                        quantity = st.number_input("Quantidade", min_value=0.1, value=1.0, step=0.1, key="new_item_quantity_input")
+                    
+                    with col3:
+                        unit_price = st.number_input(
+                            "Preço Unit.",
+                            min_value=0.0,
+                            value=selected_service["unit_price"] if selected_service else 0.0,
+                            step=0.01,
+                            key="new_item_price_input"
+                        )
+                    
+                    # Máquina associada (opcional)
+                    if machines:
+                        machine_options = [0] + [m["id"] for m in machines]
+                        machine_labels = ["Nenhuma"] + [m["name"] for m in machines]
+                        
+                        selected_machine_idx = st.selectbox(
+                            "Máquina (opcional)",
+                            options=range(len(machine_options)),
+                            format_func=lambda idx: machine_labels[idx],
+                            key="new_item_machine_select"
+                        )
+                        selected_machine_id = machine_options[selected_machine_idx] if selected_machine_idx > 0 else None
+                    else:
+                        selected_machine_id = None
+                    
+                    # Descrição personalizada
+                    custom_description = st.text_input(
+                        "Descrição Personalizada (opcional)",
+                        value=selected_service["name"] if selected_service else "",
+                        key="new_item_description_input"
+                    )
+                    
+                    # Botão para adicionar item à lista - usando form_submit_button
+                    submitted = st.form_submit_button("Adicionar Item")
+                    
+                    if submitted:
+                        tax_rate = selected_service["tax_rate"] if selected_service else 23.0
+                        subtotal = quantity * unit_price
+                        tax_amount = subtotal * (tax_rate / 100)
+                        total = subtotal + tax_amount
+                        
+                        new_item = {
+                            "service_id": selected_service_id,
+                            "machine_id": selected_machine_id,
+                            "quantity": quantity,
+                            "unit_price": unit_price,
+                            "tax_rate": tax_rate,
+                            "description": custom_description,
+                            "subtotal": subtotal,
+                            "tax_amount": tax_amount,
+                            "total": total,
+                            # Campos extras para exibição na UI
+                            "service_name": selected_service["name"] if selected_service else "",
+                            "machine_name": next((m["name"] for m in machines if m["id"] == selected_machine_id), "") if selected_machine_id else ""
+                        }
+                        
+                        st.session_state.invoice_items.append(new_item)
+                        st.success("Item adicionado!")
+                        st.rerun()
+            else:
+                st.warning("Não existem serviços cadastrados. Cadastre um serviço primeiro na aba 'Serviços'.")
         
         # Lista de faturas existentes
         st.subheader("Faturas Existentes")
@@ -397,7 +408,6 @@ def show_billing():
         with col3:
             # Filtro de empresa (só para admin)
             if is_admin():
-                companies = get_api_data("companies") or []
                 company_options = ["Todas"] + [c["name"] for c in companies]
                 company_filter = st.selectbox(
                     "Empresa",
@@ -484,10 +494,25 @@ def show_billing():
                     reverse=True
                 )
                 
+                # Inicialização de estado para PDF e ações
+                if "current_pdf_invoice" not in st.session_state:
+                    st.session_state.current_pdf_invoice = None
+                    
+                # Inicializar dicionário de estados para cada fatura
+                if "invoice_actions" not in st.session_state:
+                    st.session_state.invoice_actions = {}
+                
                 # Exibir cada fatura em um expander
                 for invoice in filtered_invoices:
+                    invoice_id = invoice['id']
                     status_display = INVOICE_STATUS_DISPLAY.get(invoice["status"], invoice["status"])
                     status_color = INVOICE_STATUS_COLORS.get(invoice["status"], "gray")
+                    
+                    # Inicializar estado específico para essa fatura se não existir
+                    if invoice_id not in st.session_state.invoice_actions:
+                        st.session_state.invoice_actions[invoice_id] = {
+                            'show_pdf': False
+                        }
                     
                     with st.expander(f"Fatura {invoice['invoice_number']} - {invoice['company_name']} - {status_display} - {invoice['issue_date']}"):
                         col1, col2 = st.columns([3, 1])
@@ -512,8 +537,9 @@ def show_billing():
                             st.write(f"**TOTAL:** {invoice['total']:.2f} €")
                         
                         with col2:
-                            # Gerar PDF
-                            if st.button("Gerar PDF", key=f"pdf_{invoice['id']}"):
+                            # Usamos um formulário separado para cada ação de fatura
+                            # Botão para gerar PDF
+                            if st.button("Gerar PDF", key=f"pdf_btn_{invoice['id']}"):
                                 # Buscar detalhes da empresa para o PDF
                                 company = get_api_data(f"companies/{invoice['company_id']}")
                                 if company:
@@ -522,37 +548,57 @@ def show_billing():
                                 pdf_bytes = generate_invoice_pdf(invoice)
                                 filename = f"fatura_{invoice['invoice_number']}.pdf"
                                 
-                                # Link para download
+                                # Salvar o PDF na sessão
+                                st.session_state.invoice_actions[invoice_id]['pdf_bytes'] = pdf_bytes
+                                st.session_state.invoice_actions[invoice_id]['pdf_filename'] = filename
+                                st.session_state.invoice_actions[invoice_id]['show_pdf'] = True
+                                st.rerun()
+                            
+                            # Mostrar link para download se o PDF foi gerado
+                            if st.session_state.invoice_actions[invoice_id].get('show_pdf'):
+                                pdf_bytes = st.session_state.invoice_actions[invoice_id].get('pdf_bytes')
+                                filename = st.session_state.invoice_actions[invoice_id].get('pdf_filename')
                                 st.markdown(get_download_link(pdf_bytes, filename), unsafe_allow_html=True)
                             
-                            # Ações conforme o status
+                            # Ações conforme o status - Cada ação em seu próprio formulário
                             if invoice["status"] == "draft":
-                                if st.button("Marcar como Enviada", key=f"send_{invoice['id']}"):
-                                    if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "sent"}):
-                                        st.success("Fatura marcada como enviada!")
-                                        st.rerun()
+                                with st.form(key=f"draft_actions_{invoice['id']}"):
+                                    send_btn = st.form_submit_button("Marcar como Enviada")
+                                    if send_btn:
+                                        if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "sent"}):
+                                            st.success("Fatura marcada como enviada!")
+                                            st.rerun()
                                 
-                                # Excluir (apenas rascunhos)
+                                # Excluir (apenas rascunhos) - Isso precisa estar fora do formulário
                                 show_delete_button("invoice", invoice["id"], "Excluir", f"Tem certeza que deseja excluir a fatura {invoice['invoice_number']}?")
                             
                             elif invoice["status"] == "sent":
-                                if st.button("Marcar como Paga", key=f"pay_{invoice['id']}"):
-                                    payment_date = datetime.now().date().isoformat()
-                                    if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "paid", "payment_date": payment_date}):
-                                        st.success("Fatura marcada como paga!")
-                                        st.rerun()
-                                
-                                if st.button("Marcar como Vencida", key=f"overdue_{invoice['id']}"):
-                                    if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "overdue"}):
-                                        st.success("Fatura marcada como vencida!")
-                                        st.rerun()
+                                with st.form(key=f"sent_actions_{invoice['id']}"):
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        pay_btn = st.form_submit_button("Marcar como Paga")
+                                    with col2:
+                                        overdue_btn = st.form_submit_button("Marcar como Vencida")
+                                    
+                                    if pay_btn:
+                                        payment_date = datetime.now().date().isoformat()
+                                        if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "paid", "payment_date": payment_date}):
+                                            st.success("Fatura marcada como paga!")
+                                            st.rerun()
+                                    
+                                    if overdue_btn:
+                                        if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "overdue"}):
+                                            st.success("Fatura marcada como vencida!")
+                                            st.rerun()
                             
                             # Qualquer fatura pode ser cancelada se não estiver já cancelada
                             if invoice["status"] != "canceled":
-                                if st.button("Cancelar Fatura", key=f"cancel_{invoice['id']}"):
-                                    if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "canceled"}):
-                                        st.success("Fatura cancelada!")
-                                        st.rerun()
+                                with st.form(key=f"cancel_action_{invoice['id']}"):
+                                    cancel_btn = st.form_submit_button("Cancelar Fatura")
+                                    if cancel_btn:
+                                        if put_api_data(f"billing/invoices/{invoice['id']}/status", {"status": "canceled"}):
+                                            st.success("Fatura cancelada!")
+                                            st.rerun()
                         
                         # Itens da fatura
                         if invoice.get("items"):
@@ -631,7 +677,11 @@ def show_billing():
                 status = "Ativo" if service.get("is_active", True) else "Inativo"
                 status_color = "green" if service.get("is_active", True) else "red"
                 
-                with st.expander(f"{service['name']} - {service['unit_price']}€ - <span style='color:{status_color};'>{status}</span>", expanded=False, unsafe_allow_html=True):
+                # Criar o título com formatação HTML
+                service_title = f"{service['name']} - {service['unit_price']}€ - {status}"
+                
+                # Usar o expander sem o parâmetro unsafe_allow_html
+                with st.expander(service_title, expanded=False):
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
@@ -639,26 +689,35 @@ def show_billing():
                         st.write(f"**Preço Unitário:** {service['unit_price']}€")
                         st.write(f"**Taxa de IVA:** {service['tax_rate']}%")
                         
+                        # Mostrar status com cor usando markdown
+                        st.markdown(f"**Status:** <span style='color:{status_color};'>{status}</span>", unsafe_allow_html=True)
+                        
                         if service.get("description"):
                             st.write(f"**Descrição:** {service['description']}")
                     
                     with col2:
-                        # Botão de edição
-                        if st.button("Editar", key=f"edit_service_{service['id']}"):
-                            st.session_state.edit_service = service
-                            st.rerun()
+                        # Formulário para o botão de edição
+                        with st.form(key=f"edit_btn_form_{service['id']}", clear_on_submit=False):
+                            edit_submitted = st.form_submit_button("Editar")
+                            if edit_submitted:
+                                st.session_state.edit_service = service
+                                st.rerun()
                         
-                        # Botão de ativação/desativação
+                        # Formulário para o botão de ativação/desativação
                         if service.get("is_active", True):
-                            if st.button("Desativar", key=f"deactivate_{service['id']}"):
-                                if put_api_data(f"billing/services/{service['id']}", {"is_active": False}):
-                                    st.success(f"Serviço '{service['name']}' desativado!")
-                                    st.rerun()
+                            with st.form(key=f"deactivate_form_{service['id']}", clear_on_submit=False):
+                                deactivate_submitted = st.form_submit_button("Desativar")
+                                if deactivate_submitted:
+                                    if put_api_data(f"billing/services/{service['id']}", {"is_active": False}):
+                                        st.success(f"Serviço '{service['name']}' desativado!")
+                                        st.rerun()
                         else:
-                            if st.button("Ativar", key=f"activate_{service['id']}"):
-                                if put_api_data(f"billing/services/{service['id']}", {"is_active": True}):
-                                    st.success(f"Serviço '{service['name']}' ativado!")
-                                    st.rerun()
+                            with st.form(key=f"activate_form_{service['id']}", clear_on_submit=False):
+                                activate_submitted = st.form_submit_button("Ativar")
+                                if activate_submitted:
+                                    if put_api_data(f"billing/services/{service['id']}", {"is_active": True}):
+                                        st.success(f"Serviço '{service['name']}' ativado!")
+                                        st.rerun()
             
             # Formulário de edição
             if hasattr(st.session_state, "edit_service"):

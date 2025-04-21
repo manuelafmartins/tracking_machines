@@ -13,12 +13,12 @@ import os
 from dotenv import load_dotenv
 
 def show_maintenances():
-    st.title("Maintenance Scheduling")
+    st.title("Agendamento de Manutenções")
     
-    # Fetch data based on user role
+    # Buscar dados com base no papel do usuário
     if is_admin():
         companies = get_api_data("companies") or []
-        # Fetch all machines initially
+        # Buscar todas as máquinas inicialmente
         all_machines = get_api_data("machines") or []
     else:
         company_id = st.session_state.get("company_id")
@@ -29,73 +29,73 @@ def show_maintenances():
             companies = []
             all_machines = []
     
-    # Create a dictionary to quickly look up company names
+    # Criar um dicionário para busca rápida de nomes de empresas
     company_dict = {c["id"]: c["name"] for c in companies}
     
-    # Create a form to schedule new maintenance
+    # Criar um formulário para agendar nova manutenção
     with st.form("new_maintenance"):
-        st.subheader("Schedule New Maintenance")
+        st.subheader("Agendar Nova Manutenção")
         
-        # Company filter (admin only)
+        # Filtro de empresa (apenas para admin)
         if is_admin() and companies:
             company_options = [c["id"] for c in companies]
             company_labels = [c["name"] for c in companies]
             
             selected_company_idx = st.selectbox(
-                "Filter by Company",
+                "Filtrar por Empresa",
                 options=range(len(company_options)),
                 format_func=lambda idx: company_labels[idx],
                 key="company_filter"
             )
             selected_company_id = company_options[selected_company_idx]
             
-            # Filter machines by selected company
+            # Filtrar máquinas pela empresa selecionada
             machines = [m for m in all_machines if m["company_id"] == selected_company_id]
         else:
-            # Fleet managers see only their company's machines
+            # Gestores de frota veem apenas as máquinas de sua empresa
             machines = all_machines
         
-        # Let user pick a machine
+        # Deixar o usuário escolher uma máquina
         if machines:
             machine_options = [m["id"] for m in machines]
             machine_labels = [f"{m['name']} ({m['type']})" for m in machines]
             
             selected_machine_idx = st.selectbox(
-                "Machine",
+                "Máquina",
                 options=range(len(machine_options)),
                 format_func=lambda idx: machine_labels[idx]
             )
             chosen_machine_id = machine_options[selected_machine_idx]
         else:
-            st.warning("No machines available. Please add a machine first.")
+            st.warning("Não há máquinas disponíveis. Por favor, adicione uma máquina primeiro.")
             chosen_machine_id = None
         
-        # Types of maintenance
+        # Tipos de manutenção
         maintenance_type = st.selectbox(
-            "Maintenance Type",
-            ["Oil Change", "Full Review", "Filters", "Tires", "Other"]
+            "Tipo de Manutenção",
+            ["Troca de Óleo", "Revisão Completa", "Filtros", "Pneus", "Manutenção Preventiva", "Manutenção Corretiva", "Outro"]
         )
         
         final_type = maintenance_type
-        if maintenance_type == "Other":
-            user_type = st.text_input("Specify the maintenance type")
+        if maintenance_type == "Outro":
+            user_type = st.text_input("Especifique o tipo de manutenção")
             if user_type:
                 final_type = user_type
         
-        # Date selection
+        # Seleção de data
         scheduled_date = st.date_input(
-            "Scheduled Date",
+            "Data Agendada",
             min_value=datetime.now().date(),
             value=datetime.now().date() + timedelta(days=7)
         )
         
-        # Optional notes
-        notes = st.text_area("Notes (Optional)")
+        # Notas opcionais
+        notes = st.text_area("Observações (Opcional)")
         
-        submitted = st.form_submit_button("Schedule")
+        submitted = st.form_submit_button("Agendar")
         
         if submitted and chosen_machine_id:
-            # According to MaintenanceCreate, we send: {"machine_id", "type", "scheduled_date", "notes"}
+            # De acordo com MaintenanceCreate, enviamos: {"machine_id", "type", "scheduled_date", "notes"}
             data = {
                 "machine_id": chosen_machine_id,
                 "type": final_type,
@@ -105,12 +105,12 @@ def show_maintenances():
                 data["notes"] = notes
                 
             if post_api_data("maintenances", data):
-                st.success(f"Maintenance scheduled on {scheduled_date}!")
+                st.success(f"Manutenção agendada para {scheduled_date}!")
                 st.rerun()
     
-    st.subheader("Scheduled Maintenances")
+    st.subheader("Manutenções Agendadas")
     
-    # Fetch maintenances based on user role
+    # Buscar manutenções com base no papel do usuário
     if is_admin():
         maintenances = get_api_data("maintenances") or []
     else:
@@ -121,106 +121,108 @@ def show_maintenances():
             maintenances = []
     
     if maintenances:
-        # Add machine name for better display
+        # Adicionar nome da máquina para melhor exibição
         for m in maintenances:
             machine = next((mac for mac in all_machines if mac["id"] == m["machine_id"]), None)
             if machine:
                 m["machine_name"] = machine["name"]
                 m["machine_type"] = machine["type"]
                 
-                # Add company name
+                # Adicionar nome da empresa
                 company_id = machine.get("company_id")
                 if company_id in company_dict:
                     m["company_name"] = company_dict[company_id]
         
-        # Convert to DataFrame for display
+        # Converter para DataFrame para exibição
         df_maint = pd.DataFrame(maintenances)
         
-        # Convert "scheduled_date" to datetime
+        # Converter "scheduled_date" para datetime
         if "scheduled_date" in df_maint.columns:
             df_maint["scheduled_date"] = pd.to_datetime(df_maint["scheduled_date"])
         
-        # Sort by date
+        # Ordenar por data
         if "scheduled_date" in df_maint.columns:
             df_maint = df_maint.sort_values("scheduled_date")
         
-        # Simple highlight for overdue / soon
+        # Destaque simples para atrasadas / em breve
         today = datetime.now().date()
         
-        # Display maintenances in tabs: Pending and Completed
-        tab1, tab2 = st.tabs(["Pending", "Completed"])
+        # Exibir manutenções em abas: Pendentes e Concluídas
+        tab1, tab2 = st.tabs(["Pendentes", "Concluídas"])
         
         with tab1:
-            # Filter for pending maintenances
+            # Filtrar para manutenções pendentes
             pending = df_maint[df_maint["completed"] == False] if "completed" in df_maint.columns else df_maint
             
             if not pending.empty:
                 for idx, maint in pending.iterrows():
-                    # Determine urgency for color coding
+                    # Determinar urgência para codificação de cores
                     date_val = maint["scheduled_date"].date() if "scheduled_date" in maint else today
                     days_remaining = (date_val - today).days
                     
                     if days_remaining <= 0:
-                        status = "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â½ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´ Overdue"
+                        status = "⚠️ Atrasada"
                     elif days_remaining <= 2:
-                        status = "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  Urgent"
+                        status = "🔴 Urgente"
                     elif days_remaining <= 7:
-                        status = "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ Soon"
+                        status = "⚡ Em Breve"
                     else:
-                        status = "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ Scheduled"
+                        status = "✓ Agendada"
                     
-                    # Create an expander with maintenance details
-                    with st.expander(f"{status} - {maint.get('type', 'Maintenance')} on {maint.get('machine_name', 'Unknown Machine')} ({date_val})"):
+                    # Criar um expansor com detalhes da manutenção
+                    with st.expander(f"{status} - {maint.get('type', 'Manutenção')} em {maint.get('machine_name', 'Máquina Desconhecida')} ({date_val})"):
                         col1, col2 = st.columns([3, 1])
                         
                         with col1:
-                            st.write(f"**Machine:** {maint.get('machine_name', 'Unknown')}")
-                            st.write(f"**Company:** {maint.get('company_name', 'Unknown')}")
-                            st.write(f"**Type:** {maint.get('type', 'Unknown')}")
-                            st.write(f"**Scheduled Date:** {date_val}")
+                            st.write(f"**Máquina:** {maint.get('machine_name', 'Desconhecida')}")
+                            st.write(f"**Empresa:** {maint.get('company_name', 'Desconhecida')}")
+                            st.write(f"**Tipo:** {maint.get('type', 'Desconhecido')}")
+                            st.write(f"**Data Agendada:** {date_val}")
                             
                             if "notes" in maint and maint["notes"]:
-                                st.write(f"**Notes:** {maint['notes']}")
+                                st.write(f"**Observações:** {maint['notes']}")
                         
                         with col2:
-                            # Mark as completed button
-                            if st.button("Mark Completed", key=f"complete_{maint['id']}"):
+                            # Botão para marcar como concluída
+                            if st.button("Marcar como Concluída", key=f"complete_{maint['id']}"):
                                 if put_api_data(f"maintenances/{maint['id']}", {"completed": True}):
-                                    st.success("Maintenance marked as completed!")
+                                    st.success("Manutenção marcada como concluída!")
                                     st.rerun()
                             
-                            # Edit button
-                            if st.button("Edit", key=f"edit_maint_{maint['id']}"):
+                            # Botão de edição
+                            if st.button("Editar", key=f"edit_maint_{maint['id']}"):
                                 st.session_state["edit_maint_id"] = maint["id"]
                                 st.session_state["edit_maint_type"] = maint["type"]
                                 st.session_state["edit_maint_date"] = maint["scheduled_date"]
                                 st.session_state["edit_maint_notes"] = maint.get("notes", "")
                             
-                            # Delete button
-                            show_delete_button("maintenance", maint["id"])
+                            # Botão de exclusão
+                            show_delete_button("maintenance", maint["id"], label="Excluir", 
+                                              confirm_text=f"Tem certeza que deseja excluir esta manutenção?")
                     
-                    # Edit form appears if this maintenance is being edited
+                    # Formulário de edição aparece se esta manutenção estiver sendo editada
                     if st.session_state.get("edit_maint_id") == maint["id"]:
                         with st.form(f"edit_maint_{maint['id']}"):
-                            st.subheader(f"Edit Maintenance")
+                            st.subheader(f"Editar Manutenção")
                             
-                            edit_type = st.text_input("Maintenance Type", value=st.session_state["edit_maint_type"])
+                            edit_type = st.text_input("Tipo de Manutenção", value=st.session_state["edit_maint_type"])
                             
                             edit_date = st.date_input(
-                                "Scheduled Date",
+                                "Data Agendada",
                                 value=st.session_state["edit_maint_date"].date() 
                                     if isinstance(st.session_state["edit_maint_date"], datetime) 
                                     else datetime.strptime(st.session_state["edit_maint_date"], "%Y-%m-%d").date(),
                                 min_value=datetime.now().date()
                             )
                             
-                            edit_notes = st.text_area("Notes", value=st.session_state["edit_maint_notes"])
+                            edit_notes = st.text_area("Observações", value=st.session_state["edit_maint_notes"])
                             
+                            # Criar novas colunas dentro do formulário
                             col1, col2 = st.columns(2)
                             with col1:
-                                submit_edit = st.form_submit_button("Save Changes")
+                                submit_edit = st.form_submit_button("Salvar Alterações")
                             with col2:
-                                cancel_edit = st.form_submit_button("Cancel")
+                                cancel_edit = st.form_submit_button("Cancelar")
                             
                             if submit_edit and edit_type:
                                 update_data = {
@@ -230,27 +232,36 @@ def show_maintenances():
                                 }
                                 
                                 if put_api_data(f"maintenances/{maint['id']}", update_data):
-                                    st.success("Maintenance updated successfully!")
-                                    # Clear edit state
+                                    st.success("Manutenção atualizada com sucesso!")
+                                    # Limpar estado de edição
                                     if "edit_maint_id" in st.session_state:
                                         del st.session_state["edit_maint_id"]
                                     st.rerun()
                             
                             if cancel_edit:
-                                # Clear edit state
+                                # Limpar estado de edição
                                 if "edit_maint_id" in st.session_state:
                                     del st.session_state["edit_maint_id"]
                                 st.rerun()
             else:
-                st.info("No pending maintenances.")
+                st.info("Não há manutenções pendentes.")
         
         with tab2:
-            # Filter for completed maintenances
+            # Filtrar para manutenções concluídas
             completed = df_maint[df_maint["completed"] == True] if "completed" in df_maint.columns else pd.DataFrame()
             
             if not completed.empty:
-                st.dataframe(completed[["scheduled_date", "type", "machine_name", "company_name"]])
+                # Renomear colunas para exibição em português
+                column_mapping = {
+                    "scheduled_date": "Data Agendada",
+                    "type": "Tipo",
+                    "machine_name": "Máquina",
+                    "company_name": "Empresa"
+                }
+                
+                display_df = completed[["scheduled_date", "type", "machine_name", "company_name"]].rename(columns=column_mapping)
+                st.dataframe(display_df)
             else:
-                st.info("No completed maintenances.")
+                st.info("Não há manutenções concluídas.")
     else:
-        st.info("No maintenances scheduled.")
+        st.info("Não há manutenções agendadas.")
