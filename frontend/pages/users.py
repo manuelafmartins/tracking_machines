@@ -314,7 +314,7 @@ def show_users():
                             try:
                                 with open(company_logos[c_id], "rb") as img_file:
                                     encoded_logo = base64.b64encode(img_file.read()).decode()
-                                    logo_html = f"<img src='data:image/png;base64,{encoded_logo}' width='30px' style='margin-right:5px; vertical-align:middle'>"
+                                    logo_html = f"<span style='margin-left:10px;'><img src='data:image/png;base64,{encoded_logo}' class='company-logo-inline'></span>"
                             except:
                                 pass
                         
