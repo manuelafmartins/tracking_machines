@@ -160,7 +160,7 @@ def show_users():
                 # Formulário de edição aparece se este utilizador estiver sendo editado
                 if st.session_state.get("edit_user_id") == user["id"]:
                     with st.form(f"edit_user_{user['id']}"):
-                        st.subheader(f"Editar Utilizador: {user['username']}")
+                        st.subheader(f"Editar Utilizador: {st.session_state.get('edit_user_full_name')}")
                         
                         edit_username = st.text_input("Nome de Utilizador", value=st.session_state["edit_user_username"])
                         edit_password = st.text_input("Nova Palavra-passe (deixe em branco para manter a atual)", type="password")
