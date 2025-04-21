@@ -277,7 +277,7 @@ def show_users():
         
         # Passo 1: Seleção de função (fora do formulário)
         role = st.selectbox(
-            "1. Selecione a Função para o novo utilizador", 
+            "1. Selecione a função para o novo utilizador", 
             ["admin", "fleet_manager"], 
             format_func=lambda x: "Administrador" if x == "admin" else "Gestor de Frota",
             key="new_user_role"
@@ -302,26 +302,6 @@ def show_users():
                 if companies:
                     company_options = [c["id"] for c in companies]
                     company_labels = [c["name"] for c in companies]
-                    
-                    # Mostrar lista de empresas com logos, se disponível
-                    company_list_html = "<div style='margin-bottom:20px'>"
-                    for i, c_id in enumerate(company_options):
-                        company_name = company_labels[i]
-                        logo_html = ""
-                        
-                        # Tentar encontrar logo
-                        if c_id in company_logos:
-                            try:
-                                with open(company_logos[c_id], "rb") as img_file:
-                                    encoded_logo = base64.b64encode(img_file.read()).decode()
-                                    logo_html = f"<span style='margin-left:10px;'><img src='data:image/png;base64,{encoded_logo}' class='company-logo-inline'></span>"
-                            except:
-                                pass
-                        
-                        company_list_html += f"<div>{logo_html}{company_name}</div>"
-                    
-                    company_list_html += "</div>"
-                    st.markdown(company_list_html, unsafe_allow_html=True)
                     
                     selected_company_idx = st.selectbox(
                         "Atribuir à Empresa",
