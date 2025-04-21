@@ -7,16 +7,36 @@ from frontend.utils.api import get_api_data
 from frontend.utils.auth import is_admin
 from utils.ui import display_menu, show_delete_button
 from utils.auth import login_user, logout_user, is_admin
-from utils.image import get_image_base64, save_company_logo
+from utils.image import get_image_base64, save_company_logo, get_company_logo_path
 from utils.api import get_api_data, post_api_data, put_api_data, delete_api_data
 import os
 from dotenv import load_dotenv
+import base64
 
 def show_users():
     st.title("Gestão de Utilizadores")
     
     # Buscar todas as empresas para dropdown
     companies = get_api_data("companies") or []
+    
+    # Criar um dicionário para armazenar os caminhos dos logos das empresas
+    company_logos = {}
+    for company in companies:
+        company_id = company["id"]
+        logo_path = company.get("logo_path")
+        
+        # Verificar diretamente se há logo para esta empresa
+        for ext in [".png", ".jpg", ".jpeg"]:
+            custom_path = f"frontend/images/company_logos/company_{company_id}{ext}"
+            if os.path.exists(custom_path):
+                company_logos[company_id] = custom_path
+                break
+        
+        # Se não encontrou pelo ID, tente pelo caminho salvo no banco
+        if company_id not in company_logos and logo_path:
+            full_path = f"frontend/images/{logo_path}"
+            if os.path.exists(full_path):
+                company_logos[company_id] = full_path
     
     # Buscar todos os utilizadores
     users = get_api_data("auth/users") or []
@@ -28,6 +48,12 @@ def show_users():
                 company = next((c for c in companies if c["id"] == user["company_id"]), None)
                 if company:
                     user["company_name"] = company["name"]
+                    user["company_id"] = company["id"]
+                else:
+                    user["company_name"] = "Empresa não encontrada"
+            else:
+                # Para administradores ou usuários sem empresa atribuída
+                user["company_name"] = None
     
     # Criação das abas
     tab_existentes, tab_novo = st.tabs(["Utilizadores Atuais", "Criar Novo Utilizador"])
@@ -46,7 +72,8 @@ def show_users():
                     user for user in users if 
                     search_lower in user.get('username', '').lower() or 
                     search_lower in user.get('full_name', '').lower() or
-                    search_lower in user.get('email', '').lower()
+                    search_lower in user.get('email', '').lower() or
+                    (user.get('company_name') and search_lower in user.get('company_name', '').lower())
                 ]
             
             # Contador de usuários
@@ -57,19 +84,53 @@ def show_users():
                 
             # Exibir utilizadores em seções expansíveis
             for user in filtered_users:
-                status = "✅ Ativo" if user.get("is_active", True) else "❌ Inativo"
-                role_display = "Administrador" if user.get('role') == "admin" else "Gestor de Frota"
+                # Preparar informações para exibição
+                full_name = user.get('full_name', user.get('username', 'Usuário'))
+                is_active = user.get("is_active", True)
+                status_text = "✅ Ativo" if is_active else "❌ Inativo"
                 
-                with st.expander(f"{user['username']} - {role_display} ({status})"):
+                # Formatar o título do expander conforme solicitado
+                if user.get('role') == "admin":
+                    # Caso de administrador
+                    expander_title = f"{full_name} (Administrador) - ({status_text})"
+                else:
+                    # Caso de gestor de frota
+                    company_name = user.get('company_name', 'Sem empresa')
+                    expander_title = f"{full_name} ({company_name} - Gestor de Frota) - ({status_text})"
+                
+                with st.expander(expander_title):
+                    # Layout em duas colunas - uma para logo/info principal e outra para botões
                     col1, col2 = st.columns([3, 1])
                     
                     with col1:
-                        st.write(f"**ID:** {user['id']}")
-                        st.write(f"**Nome Completo:** {user.get('full_name', 'N/A')}")
+                        # Se for gestor de frota e tiver empresa, mostrar logo
+                        if user.get('role') == "fleet_manager" and user.get('company_id') in company_logos:
+                            # Obter o logo da empresa
+                            logo_path = company_logos[user['company_id']]
+                            
+                            try:
+                                with open(logo_path, "rb") as img_file:
+                                    encoded_logo = base64.b64encode(img_file.read()).decode()
+                                
+                                # Exibir o logo em tamanho reduzido
+                                st.markdown(
+                                    f"<img src='data:image/png;base64,{encoded_logo}' width='100px' style='float:left; margin-right:15px;'>",
+                                    unsafe_allow_html=True
+                                )
+                            except Exception as e:
+                                pass  # Se não conseguir carregar o logo, apenas continue sem erro
+                        
+                        # Informações do usuário
+                        st.write(f"**Nome de Utilizador:** {user.get('username', 'N/A')}")
                         st.write(f"**Email:** {user.get('email', 'N/A')}")
+                        
+                        # Mostrar função de forma apropriada
+                        role_display = "Administrador" if user.get('role') == "admin" else "Gestor de Frota"
                         st.write(f"**Função:** {role_display}")
-                        if "company_name" in user:
-                            st.write(f"**Empresa:** {user['company_name']}")
+                        
+                        # Mostrar empresa para gestores de frota
+                        if user.get('role') == "fleet_manager":
+                            st.write(f"**Empresa:** {user.get('company_name', 'Sem empresa atribuída')}")
                         
                         phone = user.get('phone_number', 'N/A')
                         st.write(f"**Telefone:** {phone}")
@@ -156,6 +217,9 @@ def show_users():
                                 edit_company_id = company_options[selected_company_idx]
                             else:
                                 st.warning("Não existem empresas disponíveis.")
+                        else:
+                            # Para administradores, mostrar que a empresa não é aplicável
+                            st.write("**Empresa:** Não aplicável para Administradores")
                         
                         # Status ativo
                         edit_is_active = st.checkbox("Ativo", value=st.session_state["edit_user_is_active"])
@@ -207,10 +271,6 @@ def show_users():
         else:
             st.info("Nenhum utilizador encontrado.")
 
-    # Inicializar o estado da função selecionada, se não existir
-    if "selected_role" not in st.session_state:
-        st.session_state.selected_role = "fleet_manager"  # valor padrão
-
     # Tab 2: Criar Novo Utilizador
     with tab_novo:
         st.subheader("Criar Novo Utilizador")
@@ -243,6 +303,26 @@ def show_users():
                     company_options = [c["id"] for c in companies]
                     company_labels = [c["name"] for c in companies]
                     
+                    # Mostrar lista de empresas com logos, se disponível
+                    company_list_html = "<div style='margin-bottom:20px'>"
+                    for i, c_id in enumerate(company_options):
+                        company_name = company_labels[i]
+                        logo_html = ""
+                        
+                        # Tentar encontrar logo
+                        if c_id in company_logos:
+                            try:
+                                with open(company_logos[c_id], "rb") as img_file:
+                                    encoded_logo = base64.b64encode(img_file.read()).decode()
+                                    logo_html = f"<img src='data:image/png;base64,{encoded_logo}' width='30px' style='margin-right:5px; vertical-align:middle'>"
+                            except:
+                                pass
+                        
+                        company_list_html += f"<div>{logo_html}{company_name}</div>"
+                    
+                    company_list_html += "</div>"
+                    st.markdown(company_list_html, unsafe_allow_html=True)
+                    
                     selected_company_idx = st.selectbox(
                         "Atribuir à Empresa",
                         options=range(len(company_options)),
@@ -251,6 +331,8 @@ def show_users():
                     company_id = company_options[selected_company_idx]
                 else:
                     st.warning("Não existem empresas disponíveis. Por favor, crie uma empresa primeiro.")
+            else:
+                st.markdown("### Empresa não aplicável para Administradores")
             
             submitted = st.form_submit_button("Criar Utilizador")
             
