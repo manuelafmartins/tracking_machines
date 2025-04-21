@@ -16,6 +16,48 @@ import base64
 def show_users():
     st.title("Gestão de Utilizadores")
     
+    st.markdown("""
+        <style>
+        
+
+        /* Botões dentro de formulários */
+        div[data-testid="stForm"] button {
+            background-color: #2c3e50 !important;
+            color: white !important;
+            border: none !important;
+        }
+        div[data-testid="stForm"] button:hover {
+            background-color: #34495e !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        /* Botões dentro de colunas horizontais */
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button {
+            background-color: #2c3e50 !important;
+            color: white !important;
+            border: none !important;
+        }
+        div[data-testid="stHorizontalBlock"] div[data-testid="column"] button:hover {
+            background-color: #34495e !important;
+            color: white !important;
+            border: none !important;
+        }
+                
+        /* Evitar estilizar o botão hide/unhide do input de password */
+        button[title="View password text"] {
+            background-color: transparent !important;
+            color: inherit !important;
+            border: none !important;
+        }
+        button[title="View password text"]:hover {
+            background-color: transparent !important;
+            color: inherit !important;
+            border: none !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     # Buscar todas as empresas para dropdown
     companies = get_api_data("companies") or []
     
@@ -62,7 +104,7 @@ def show_users():
     with tab_existentes:
         if users:
             # Adicionar campo de pesquisa
-            search_query = st.text_input("🔍 Pesquisar utilizador", placeholder="Digite para filtrar...")
+            search_query = st.text_input("Pesquisar utilizador", placeholder="Escreva para procurar...")
             
             # Filtrar usuários se houver termo de pesquisa
             filtered_users = users
@@ -78,7 +120,7 @@ def show_users():
             
             # Contador de usuários
             if search_query:
-                st.write(f"Exibindo {len(filtered_users)} de {len(users)} utilizadores")
+                st.write(f"Resultados: {len(filtered_users)} de {len(users)} utilizadores")
             else:
                 st.write(f"Total de utilizadores: {len(users)}")
                 
@@ -87,16 +129,15 @@ def show_users():
                 # Preparar informações para exibição
                 full_name = user.get('full_name', user.get('username', 'Usuário'))
                 is_active = user.get("is_active", True)
-                status_text = "✅ Ativo" if is_active else "❌ Inativo"
                 
                 # Formatar o título do expander conforme solicitado
                 if user.get('role') == "admin":
                     # Caso de administrador
-                    expander_title = f"{full_name} (Administrador) - ({status_text})"
+                    expander_title = f"{full_name} (Administrador)"
                 else:
                     # Caso de gestor de frota
                     company_name = user.get('company_name', 'Sem empresa')
-                    expander_title = f"{full_name} ({company_name} - Gestor de Frota) - ({status_text})"
+                    expander_title = f"{full_name} ({company_name} - Gestor de Frota)"
                 
                 with st.expander(expander_title):
                     # Layout em duas colunas - uma para logo/info principal e outra para botões
@@ -139,8 +180,10 @@ def show_users():
                         st.write(f"**Notificações:** {notif_status}")
                     
                     with col2:
-                        # Botão de edição
-                        if st.button("Editar", key=f"edit_user_{user['id']}"):
+                        # Botão de edição com fundo azul escuro e ícone branco
+                        if st.button("Editar", key=f"edit_user_{user['id']}", 
+                                    use_container_width=True,
+                                    icon=":material/edit:"):
                             st.session_state["edit_user_id"] = user["id"]
                             st.session_state["edit_user_username"] = user["username"]
                             st.session_state["edit_user_full_name"] = user.get("full_name", "")
@@ -148,13 +191,20 @@ def show_users():
                             st.session_state["edit_user_role"] = user.get("role", "fleet_manager")
                             st.session_state["edit_user_company_id"] = user.get("company_id")
                             st.session_state["edit_user_is_active"] = user.get("is_active", True)
+                            st.session_state["edit_user_phone_number"] = user.get("phone_number", "")
+                            st.session_state["edit_user_notifications_enabled"] = user.get("notifications_enabled", True)
+                        
+                       
                         
                         # Não permitir excluir o utilizador atual
                         if user["id"] != st.session_state.get("user_id"):
-                            # Botão para excluir utilizador com confirmação
-                            show_delete_button("user", user["id"], 
-                                label="Excluir",
-                                confirm_text=f"Tem certeza que deseja excluir o utilizador {user['username']}?")
+                            # Botão para excluir com fundo azul escuro e ícone branco
+                            if st.button("Excluir", key=f"delete_user_{user['id']}", 
+                                        use_container_width=True,
+                                        icon=":material/delete:"):
+                                show_delete_button(
+                                    "user", user["id"], 
+                                    confirm_text=f"Tem certeza que deseja excluir o utilizador {user['username']}?")
 
                 
                 # Formulário de edição aparece se este utilizador estiver sendo editado
@@ -227,9 +277,16 @@ def show_users():
                         # Declarar as colunas aqui para evitar o erro "Missing Submit Button"
                         form_cols = st.columns(2)
                         with form_cols[0]:
-                            submit_edit = st.form_submit_button("Salvar Alterações")
+                            submit_edit = st.form_submit_button("Salvar Alterações",
+                                                                type="primary",
+                                                                use_container_width=True,
+                                                                icon=":material/save:")
+
                         with form_cols[1]:
-                            cancel_edit = st.form_submit_button("Cancelar")
+                            cancel_edit = st.form_submit_button("Cancelar",
+                                                                type="secondary",
+                                                                use_container_width=True,
+                                                                icon=":material/cancel:")
                         
                         if submit_edit:
                             # Construir dados de atualização
@@ -298,7 +355,6 @@ def show_users():
             # Seleção de empresa (apenas para gestores de frota)
             company_id = None
             if role == "fleet_manager":
-                st.markdown("### Empresa do Gestor")
                 if companies:
                     company_options = [c["id"] for c in companies]
                     company_labels = [c["name"] for c in companies]
@@ -312,9 +368,20 @@ def show_users():
                 else:
                     st.warning("Não existem empresas disponíveis. Por favor, crie uma empresa primeiro.")
             else:
-                st.markdown("### Empresa não aplicável para Administradores")
+                st.markdown("")
             
-            submitted = st.form_submit_button("Criar Utilizador")
+            # Botões com estilo consistente
+            col1, col2 = st.columns(2)
+            with col1:
+                submitted = st.form_submit_button("Criar Utilizador", 
+                                                 use_container_width=True,
+                                                 icon=":material/person_add:")
+            with col2:
+                cancel = st.form_submit_button("Cancelar", 
+                                              use_container_width=True,
+                                              icon=":material/cancel:")
+            
+           
             
             if submitted:
                 if not username or not password:
@@ -340,3 +407,7 @@ def show_users():
                     if post_api_data("auth/users", user_data):
                         st.success(f"Utilizador '{username}' criado com sucesso!")
                         st.rerun()
+            
+            if cancel:
+                # Limpar campos do formulário e voltar para a lista
+                st.rerun()
