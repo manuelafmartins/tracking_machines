@@ -141,7 +141,6 @@ def render_company_card(comp):
 
         with col1:
             st.markdown("<h4 style='color:#34495e;'><i class='fas fa-info-circle'></i> Dados Gerais</h4>", unsafe_allow_html=True)
-            st.markdown(f"<span style='color:#34495e;'><i class='fas fa-hashtag'></i> <strong>ID:</strong> {comp.get('id')}</span>", unsafe_allow_html=True)
             st.markdown(f"<span style='color:#34495e;'><i class='fas fa-map-marker-alt'></i> <strong>Morada:</strong> {comp.get('address') or '-'}</span>", unsafe_allow_html=True)
             st.markdown(f"<span style='color:#34495e;'><i class='fas fa-city'></i> <strong>Cidade:</strong> {comp.get('city') or '-'}</span>", unsafe_allow_html=True)
             st.markdown(f"<span style='color:#34495e;'><i class='fas fa-mail-bulk'></i> <strong>Código Postal:</strong> {comp.get('postal_code') or '-'}</span>", unsafe_allow_html=True)
@@ -286,10 +285,28 @@ def render_edit_form(comp):
 
 def show_companies():
     st.title("Gestão de Empresas")
-    st.markdown("""
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    """, unsafe_allow_html=True)
-    
+    st.markdown(
+        """
+        <style>
+        /* estiliza todos os botões de submit de formulário */
+         button[data-testid="stFormSubmit"][title="Adicionar Empresa"] {
+        background-color: #2c3e50 !important;
+        …
+        }
+        button[data-testid="stFormSubmit"] {
+            background-color: #2c3e50 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        button[data-testid="stFormSubmit"]:hover {
+            background-color: #34495e !important;
+        }
+       
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+            
     
     
     # Inicializar estados de sessão necessários
@@ -381,7 +398,13 @@ def show_companies():
                 for error in validation_errors:
                     st.warning(error)
                 
-                submitted = st.form_submit_button("Adicionar Empresa")
+                col_btn = st.columns(1)[0]  
+                with col_btn:
+                    submitted = st.form_submit_button(
+                        "Adicionar Empresa",
+                        use_container_width=True,
+                        icon=":material/add_business:"
+                    )
                 
                 if submitted and company_name and not validation_errors:
                     # Preparar dados para envio
