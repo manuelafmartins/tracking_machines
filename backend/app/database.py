@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/fleetdb")
 masked_db_url = f"{DATABASE_URL.rsplit('@', 1)[0]}@*****"
-logger.info(f"Connecting to database: {masked_db_url}")
+#logger.info(f"Connecting to database: {masked_db_url}")
 
 try:
     engine = create_engine(
@@ -28,7 +28,7 @@ try:
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base = declarative_base()
-    logger.info("Database configuration successful.")
+    #logger.info("Database configuration successful.")
 except SQLAlchemyError as e:
     logger.critical(f"Critical database error: {e}")
     raise
@@ -42,7 +42,7 @@ def get_db():
     try:
         yield db
     except SQLAlchemyError as e:
-        logger.error(f"Session error: {e}")
+        #logger.error(f"Session error: {e}")
         db.rollback()
         raise
     finally:

@@ -18,7 +18,7 @@ load_dotenv()
 API_URL = os.getenv("API_URL")
 
 # Constantes
-PAYMENT_METHODS = ["Transferência Bancária", "Débito Direto", "Cartão de Crédito", "Outro"]
+PAYMENT_METHODS = ["Transferência Bancária", "Débito Direto", "Cartão de Crédito", "Dinheiro", "Outro"]
 
 def update_company_direct(company_id, update_data):
     """
@@ -289,7 +289,7 @@ def show_companies():
     st.markdown("""
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     """, unsafe_allow_html=True)
-    st.markdown("Visualize e edite os dados das empresas associadas.")
+    
     
     
     # Inicializar estados de sessão necessários
@@ -318,6 +318,7 @@ def show_companies():
     
     # TAB 1: Listar Empresas Existentes
     with tab1:
+        st.markdown("Visualize e edite os dados das empresas associadas.")
         if companies:
             # Contador e filtro
             col1, col2 = st.columns([2, 1])
@@ -347,8 +348,9 @@ def show_companies():
     # TAB 2: Adicionar Nova Empresa (apenas para admins)
     if is_admin():
         with tab2:
+            st.markdown("Adicione uma nova empresa.")
             with st.form("new_company"):
-                st.subheader("Adicionar Nova Empresa")
+                #st.subheader("Adicionar Nova Empresa")
                 
                 col1, col2 = st.columns(2)
                 with col1:

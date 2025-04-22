@@ -224,7 +224,7 @@ def show_billing():
                 # Método de pagamento
                 payment_method = st.selectbox(
                     "Método de Pagamento",
-                    ["Transferência Bancária", "Débito Direto", "Cartão de Crédito", "Outro"]
+                    ["Transferência Bancária", "Débito Direto", "Cartão de Crédito", "Dinheiro", "Outro"]
                 )
                 
                 # Notas

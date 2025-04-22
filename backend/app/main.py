@@ -41,9 +41,9 @@ def startup_event():
     Runs once on application startup: logs initialization, 
     creates default admin users, and starts the scheduler.
     """
-    logger.info("Starting Fleet Management API.")
-    logger.info("Creating default users if needed.")
-    create_main_admin()  # Creates the main admin user if not present
+    #logger.info("Starting Fleet Management API.")
+    #logger.info("Creating default users if needed.")
+    #create_main_admin()  # Creates the main admin user if not present
     # create_admin_user() # Uncomment if you need a separate general admin
     start_scheduler()
 
