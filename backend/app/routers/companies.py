@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 
 from .. import database, crud, schemas, models
 from ..dependencies import get_current_user, get_admin_user, get_company_access
+from ..email_service import send_company_creation_email
+from ..notifications import notify_new_company_added
+import os
 
 # Configure router
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -52,19 +55,15 @@ def create_company(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_admin_user)
 ):
-    """
-    Creates a new company (admin only).
+    db_company = crud.create_company(db, company)
     
-    Args:
-        company: Company data to create
-        db: Database session
-        current_user: Current user (must be admin)
-        
-    Returns:
-        Created company
-    """
-    return crud.create_company(db, company)
-
+    # Notificar sobre a nova empresa
+    try:
+        notify_new_company_added(db, db_company.name, db_company.id)
+    except Exception as e:
+        logging.error(f"Erro ao enviar notificação de nova empresa: {str(e)}")
+    
+    return db_company
 
 @router.get("/{company_id}", response_model=schemas.Company)
 def get_company(

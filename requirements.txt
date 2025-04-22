@@ -20,3 +20,4 @@ unidecode
 reportlab
 streamlit_geolocation
 geopy
+emails>=0.6

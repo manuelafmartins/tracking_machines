@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from .models import User, UserRoleEnum
 from .crud import get_users_by_company, get_user_by_id
+from .email_service import send_email
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -243,3 +244,49 @@ def notify_upcoming_maintenance(db: Session, machine_name: str, maintenance_type
     
     # Notify company managers
     notify_company_managers(db, company_id, message)
+
+
+# Adicionar esta nova função
+def send_email_notification(email: str, subject: str, message: str) -> bool:
+    """
+    Enviar notificação por email
+    
+    Args:
+        email: Endereço de email do destinatário
+        subject: Assunto do email
+        message: Conteúdo da mensagem
+        
+    Returns:
+        bool: True se enviado com sucesso, False caso contrário
+    """
+    html_content = f"""
+    <html>
+        <body>
+            <h1>{subject}</h1>
+            <p>{message}</p>
+            <p>Atenciosamente,<br>FleetPilot System</p>
+        </body>
+    </html>
+    """
+    
+    return send_email(email, subject, html_content)
+
+# Modificar a função notify_new_company_added (nova função)
+def notify_new_company_added(db: Session, company_name: str, company_id: int):
+    """Notify admins about a new company being added"""
+    message = unidecode(f"Nova empresa '{company_name}' adicionada ao sistema")
+    subject = "Nova Empresa Adicionada"
+    
+    # Notificar por SMS
+    notify_admins(db, message)
+    
+    # Notificar por email para todos os admins
+    admin_users = db.query(User).filter(
+        User.role == UserRoleEnum.admin,
+        User.is_active == True,
+        User.email.isnot(None)
+    ).all()
+    
+    for admin in admin_users:
+        if admin.email:
+            send_email_notification(admin.email, subject, message)
