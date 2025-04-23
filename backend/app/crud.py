@@ -1,9 +1,10 @@
-"""CRUD helpers for the Fleet Management back‑end."""
+"""CRUD helpers for the Fleet Management back‑end."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import List, Optional
+import logging
 
 from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
@@ -155,7 +156,7 @@ def delete_company(db: Session, company_id: int) -> bool:
     if not db_company:
         return False
     db.delete(db_company)
-    _commit_refresh(db, db_company)
+    db.commit()
     return True
 
 
@@ -283,7 +284,7 @@ def delete_maintenance(db: Session, maintenance_id: int) -> bool:
 # Helpers for alarms / dashboards
 # ──────────────────────────────
 def list_pending_maintenances(db: Session) -> List[models.Maintenance]:
-    """Maintenances due within the next 7 days (not completed)."""
+    """Maintenances due within the next 7 days (not completed)."""
     today = datetime.now().date()
     next_week = today + timedelta(days=7)
     return (
@@ -299,7 +300,7 @@ def list_pending_maintenances(db: Session) -> List[models.Maintenance]:
 
 
 def list_company_pending_maintenances(db: Session, company_id: int) -> List[models.Maintenance]:
-    """Pending maintenances in next 7 days for *company_id*."""
+    """Pending maintenances in next 7 days for *company_id*."""
     today = datetime.now().date()
     next_week = today + timedelta(days=7)
     return (

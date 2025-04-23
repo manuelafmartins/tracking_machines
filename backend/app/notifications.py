@@ -287,6 +287,13 @@ def notify_new_company_added(db: Session, company_name: str, company_id: int):
         User.email.isnot(None)
     ).all()
     
+    logger.info(f"Encontrados {len(admin_users)} administradores para notificação por email")
+    
     for admin in admin_users:
         if admin.email:
-            send_email_notification(admin.email, subject, message)
+            logger.info(f"Tentando enviar email para {admin.email}")
+            result = send_email_notification(admin.email, subject, message)
+            if result:
+                logger.info(f"Email enviado com sucesso para {admin.email}")
+            else:
+                logger.error(f"Falha ao enviar email para {admin.email}")

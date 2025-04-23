@@ -59,7 +59,7 @@ def show_delete_button(item_type, item_id, label="Eliminar", confirm_text=None):
             return False
     else:
         # Mostrar o botão de delete inicial
-        if st.button(label, key=f"delete_{item_type}_{item_id}"):
+        if st.button(label, key=f"delete_{item_type}_{item_id}", use_container_width=True, icon=":material/delete:"):
             # Ativar modo de confirmação
             st.session_state[confirm_key] = True
             st.rerun()

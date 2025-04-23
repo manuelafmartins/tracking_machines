@@ -11,6 +11,7 @@ from ..dependencies import get_current_user, get_admin_user, get_company_access
 from ..email_service import send_company_creation_email
 from ..notifications import notify_new_company_added
 import os
+import logging
 
 # Configure router
 router = APIRouter(prefix="/companies", tags=["companies"])

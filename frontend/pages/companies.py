@@ -288,20 +288,25 @@ def show_companies():
     st.markdown(
         """
         <style>
-        /* estiliza todos os botões de submit de formulário */
-         button[data-testid="stFormSubmit"][title="Adicionar Empresa"] {
-        background-color: #2c3e50 !important;
-        …
-        }
-        button[data-testid="stFormSubmit"] {
+        /* estiliza o botão de submit do formulário */
+        button[type="submit"] {
             background-color: #2c3e50 !important;
-            color: #ffffff !important;
+            color: white !important;
             border: none !important;
         }
-        button[data-testid="stFormSubmit"]:hover {
+        button[type="submit"]:hover {
             background-color: #34495e !important;
         }
-       
+        
+        div[data-testid="stFormSubmitButton"] > button {
+            background-color: #2c3e50 !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        div[data-testid="stFormSubmitButton"] > button:hover {
+            background-color: #34495e !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -401,9 +406,9 @@ def show_companies():
                 col_btn = st.columns(1)[0]  
                 with col_btn:
                     submitted = st.form_submit_button(
-                        "Adicionar Empresa",
-                        use_container_width=True,
-                        icon=":material/add_business:"
+                        "➕ Adicionar Empresa",
+                        type="primary",
+                        use_container_width=True
                     )
                 
                 if submitted and company_name and not validation_errors:
